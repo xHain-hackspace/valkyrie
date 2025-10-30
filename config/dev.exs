@@ -21,7 +21,7 @@ config :valkyrie, ValkyrieWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "/kscHIeM8vd1XM5/tnAj2Htmb45Er9G4cwlfydF2lawHRkDTZ+6+tdUXcP/IXa0b",
+  secret_key_base: "+Li55CLdVZ3QHO9lgrGUpqArpSQopyQjhECsCN3f13cFgzdisO23gEWcGplvXhcx",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:valkyrie, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:valkyrie, ~w(--watch)]}

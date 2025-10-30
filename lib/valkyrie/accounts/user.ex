@@ -25,6 +25,23 @@ defmodule Valkyrie.Accounts.User do
       store_all_tokens? true
       require_token_presence_for_authentication? true
     end
+
+    strategies do
+      oidc :xhain_account do
+        client_id Valkyrie.Secrets
+        base_url Valkyrie.Secrets
+
+        redirect_uri fn _secret, _context ->
+          Application.fetch_env(:valkyrie, :xhain_account_redirect_uri)
+        end
+
+        registration_enabled? true
+        id_token_signed_response_alg "HS256"
+        authorization_params scope: "openid profile email"
+
+        client_secret Valkyrie.Secrets
+      end
+    end
   end
 
   actions do
@@ -36,6 +53,32 @@ defmodule Valkyrie.Accounts.User do
       get? true
       prepare AshAuthentication.Preparations.FilterBySubject
     end
+
+    create :register_with_xhain_account do
+      description "Register a user using the xHain Account System"
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false
+      change AshAuthentication.GenerateTokenChange
+
+      change fn changeset, _ ->
+        user_info = Ash.Changeset.get_argument(changeset, :user_info)
+
+        Ash.Changeset.change_attributes(changeset, %{
+          username: Map.get(user_info, "preferred_username")
+        })
+      end
+
+      upsert? true
+      upsert_identity :username
+    end
+
+    read :sign_in_with_xhain_account do
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false
+      prepare AshAuthentication.Strategy.OAuth2.SignInPreparation
+
+      filter expr(username == get_path(^arg(:user_info), [:preferred_username]))
+    end
   end
 
   policies do
@@ -46,5 +89,10 @@ defmodule Valkyrie.Accounts.User do
 
   attributes do
     uuid_primary_key :id
+    attribute :username, :string, allow_nil?: false, public?: true
+  end
+
+  identities do
+    identity :username, [:username]
   end
 end

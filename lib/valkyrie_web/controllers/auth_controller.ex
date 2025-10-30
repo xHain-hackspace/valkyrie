@@ -41,7 +41,7 @@ defmodule ValkyrieWeb.AuthController do
 
     conn
     |> put_flash(:error, message)
-    |> redirect(to: ~p"/sign-in")
+    |> redirect(to: ~p"/")
   end
 
   def sign_out(conn, _params) do

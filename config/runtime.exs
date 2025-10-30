@@ -20,6 +20,27 @@ if System.get_env("PHX_SERVER") do
   config :valkyrie, ValkyrieWeb.Endpoint, server: true
 end
 
+# Configure the xHain Account credentials using environment variables
+config :valkyrie,
+  xhain_account_client_secret:
+    System.get_env("XHAIN_ACCOUNT_CLIENT_SECRET") ||
+      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_SECRET`!")
+
+config :valkyrie,
+  xhain_account_client_id:
+    System.get_env("XHAIN_ACCOUNT_CLIENT_ID") ||
+      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_ID`!")
+
+config :valkyrie,
+  xhain_account_base_url:
+    System.get_env("XHAIN_ACCOUNT_BASE_URL") ||
+      raise("Missing environment variable `XHAIN_ACCOUNT_BASE_URL`!")
+
+config :valkyrie,
+  xhain_account_redirect_uri:
+    System.get_env("XHAIN_ACCOUNT_REDIRECT_URI") ||
+      raise("Missing environment variable `XHAIN_ACCOUNT_REDIRECT_URI`!")
+
 if config_env() == :prod do
   database_path =
     System.get_env("DATABASE_PATH") ||
