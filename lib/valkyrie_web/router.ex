@@ -41,7 +41,6 @@ defmodule ValkyrieWeb.Router do
   scope "/", ValkyrieWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
     auth_routes AuthController, Valkyrie.Accounts.User, path: "/auth"
     sign_out_route AuthController
   end
