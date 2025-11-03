@@ -49,10 +49,12 @@ config :spark,
     ]
   ]
 
+config :tesla, adapter: Tesla.Adapter.Mint
+
 config :valkyrie,
   ecto_repos: [Valkyrie.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [Valkyrie.Accounts]
+  ash_domains: [Valkyrie.Accounts, Valkyrie.Members]
 
 # Configures the endpoint
 config :valkyrie, ValkyrieWeb.Endpoint,

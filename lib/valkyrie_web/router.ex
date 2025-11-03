@@ -41,8 +41,33 @@ defmodule ValkyrieWeb.Router do
   scope "/", ValkyrieWeb do
     pipe_through :browser
 
+    ash_authentication_live_session :authentication_required,
+      on_mount:
+        if(Application.compile_env(:valkyrie, :disable_auth, false),
+          do: [{ValkyrieWeb.LiveUserAuth, :live_user_optional}],
+          else: [{ValkyrieWeb.LiveUserAuth, :live_user_required}]
+        ) do
+      live "/", MemberLive.Index, :index
+      live "/members", MemberLive.Index, :index
+      live "/members/new", MemberLive.Form, :new
+      live "/members/:id/edit", MemberLive.Form, :edit
+    end
+
     auth_routes AuthController, Valkyrie.Accounts.User, path: "/auth"
     sign_out_route AuthController
+
+    sign_in_route auth_routes_prefix: "/auth",
+                  on_mount: [{ValkyrieWeb.LiveUserAuth, :live_no_user}],
+                  overrides: [
+                    ValkyrieWeb.AuthOverrides,
+                    Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI
+                  ]
+  end
+
+  scope "/", ValkyrieWeb do
+    # Public route, no authentication required - serves plain text
+    get "/authorized_keys", AuthorizedKeysController, :authorized_keys
+    get "/authorized_keys.sig", AuthorizedKeysController, :authorized_keys_signature
   end
 
   # Other scopes may use custom stacks.

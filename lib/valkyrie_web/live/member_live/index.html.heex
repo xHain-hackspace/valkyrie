@@ -1,0 +1,106 @@
+<Layouts.app flash={@flash}>
+  <.header>
+    <:actions>
+      <.button_link navigate={~p"/members/new"}>
+        <.icon name="hero-plus" /> Add manual keyholder
+      </.button_link>
+      <.button phx-click="sync_members" phx-disable-with="Updating..." disabled={@updating}>
+        <.icon name="hero-arrow-path" /> Sync members
+      </.button>
+    </:actions>
+  </.header>
+
+  <div class="mb-6">
+    <.form for={} phx-change="search" phx-debounce="500">
+      <.search_field
+        id="member-search"
+        name="search_query"
+        value={@search_query}
+        placeholder="Search by username..."
+      />
+    </.form>
+  </div>
+
+  <.table
+    id="members"
+    rows={@streams.members}
+    thead_class="text-lg font-extrabold"
+    rounded="large"
+  >
+    <:col :let={{_id, member}} label="Username">{member.username}</:col>
+
+    <:col :let={{_id, member}} label="SSH Public Key">
+      <%= if member.ssh_public_key && member.ssh_public_key != "" do %>
+        <.tooltip text={member.ssh_public_key}>
+          <:trigger>
+            <span class="font-light break-all">
+              {String.slice(member.ssh_public_key, 0, 15) <>
+                "..." <> String.slice(member.ssh_public_key, -10, 10)}
+            </span>
+          </:trigger>
+        </.tooltip>
+      <% else %>
+        <span class="font-light italic text-gray-400">no key</span>
+      <% end %>
+    </:col>
+
+    <:col :let={{_id, member}} label="Keyholder">
+      <.toggle_field
+        id={"toggle-has-key-" <> member.id}
+        name="has_key"
+        checked={member.has_key}
+        size="medium"
+        color="primary"
+        phx-click="toggle_has_key"
+        phx-value-member-id={member.id}
+        phx-debounce="600"
+      />
+    </:col>
+
+    <:col :let={{_id, member}} label="Info">
+      <div class="flex flex-row gap-2 items-center">
+        <%= for {type, message} <- get_status(member) do %>
+          <%= case type do %>
+            <% :warning -> %>
+              <.tooltip text={message}>
+                <:trigger>
+                  <.icon
+                    name="hero-exclamation-triangle"
+                    class="size-6 text-warning flex-none"
+                  />
+                </:trigger>
+              </.tooltip>
+            <% :info -> %>
+              <.tooltip text={message}>
+                <:trigger>
+                  <.icon name="hero-information-circle" class="size-6 text-info flex-none" />
+                </:trigger>
+              </.tooltip>
+          <% end %>
+        <% end %>
+      </div>
+    </:col>
+
+    <:action :let={{id, member}}>
+      <%= if member.is_manual_entry do %>
+        <.button_link navigate={~p"/members/#{member}/edit"}>Edit</.button_link>
+        <.button
+          phx-click={JS.push("delete", value: %{id: member.id}) |> hide("##{id}")}
+          data-confirm="Are you sure?"
+        >
+          Delete
+        </.button>
+      <% end %>
+    </:action>
+  </.table>
+
+  <div class="mt-8 flex justify-center">
+    <.pagination
+      id="pagination"
+      rounded="large"
+      variant="transparent"
+      total={@pagination.total}
+      active={@pagination.page}
+    />
+  </div>
+</Layouts.app>

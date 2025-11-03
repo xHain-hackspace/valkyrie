@@ -22,7 +22,7 @@ defmodule Valkyrie.MixProject do
   def application do
     [
       mod: {Valkyrie.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :ssh, :public_key]
     ]
   end
 
@@ -76,9 +76,12 @@ defmodule Valkyrie.MixProject do
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
-      {:jason, "~> 1.2"},
+      {:jason, "~> 1.4"},
       {:dns_cluster, "~> 0.2.0"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      {:tesla, "~> 1.11"},
+      {:mint, "~> 1.0"},
+      {:ex_crypto, "~> 0.10"}
     ]
   end
 

@@ -41,6 +41,21 @@ config :valkyrie,
     System.get_env("XHAIN_ACCOUNT_REDIRECT_URI") ||
       raise("Missing environment variable `XHAIN_ACCOUNT_REDIRECT_URI`!")
 
+config :valkyrie,
+  authentik_token:
+    System.get_env("AUTHENTIK_TOKEN") ||
+      raise("Missing environment variable `AUTHENTIK_TOKEN`!")
+
+config :valkyrie,
+  authentik_url:
+    System.get_env("AUTHENTIK_URL") ||
+      raise("Missing environment variable `AUTHENTIK_URL`!")
+
+config :valkyrie,
+  xdoor_signing_key:
+    System.get_env("XDOOR_SIGNING_KEY") ||
+      raise("Missing environment variable `XDOOR_SIGNING_KEY`!")
+
 if config_env() == :prod do
   database_path =
     System.get_env("DATABASE_PATH") ||
