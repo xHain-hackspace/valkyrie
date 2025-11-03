@@ -1,7 +1,16 @@
 defmodule Valkyrie.Members.Member do
   use Ash.Resource,
     domain: Valkyrie.Members,
+    extensions: [AshPaperTrail.Resource],
     data_layer: AshSqlite.DataLayer
+
+  paper_trail do
+    primary_key_type :uuid
+    change_tracking_mode :full_diff
+    store_action_name? true
+    belongs_to_actor :user, destination: Valkyrie.Accounts.User, public?: true
+    on_actions [:create_manual_entry, :update_manual_entry, :change_keyholder_status]
+  end
 
   sqlite do
     table "members"

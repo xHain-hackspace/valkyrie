@@ -91,9 +91,11 @@ defmodule ValkyrieWeb.MemberLive.Index do
   @impl true
   def handle_event("toggle_has_key", %{"member-id" => member_id} = params, socket) do
     desired = Map.get(params, "value") == "true"
-    member = Ash.get!(Member, member_id)
+    member = Ash.get!(Member, member_id, actor: socket.assigns.current_user)
 
-    case Members.change_keyholder_status(member, %{has_key: desired}) do
+    case Members.change_keyholder_status(member, %{has_key: desired},
+           actor: socket.assigns.current_user
+         ) do
       {:ok, updated} ->
         Logger.info("Updated member #{member_id}: #{inspect(updated)}")
         {:noreply, stream_insert(socket, :members, updated)}

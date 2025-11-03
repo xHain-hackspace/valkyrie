@@ -86,6 +86,7 @@ defmodule ValkyrieWeb do
       import Phoenix.HTML
       # Core UI components
       use ValkyrieWeb.Components.MishkaComponents
+      import ValkyrieWeb.Components.PaginatedContent, only: [paginated_content: 1]
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

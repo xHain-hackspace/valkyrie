@@ -51,6 +51,8 @@ defmodule ValkyrieWeb.Router do
       live "/members", MemberLive.Index, :index
       live "/members/new", MemberLive.Form, :new
       live "/members/:id/edit", MemberLive.Form, :edit
+
+      live "/members/audit", AuditLive.Index, :index
     end
 
     auth_routes AuthController, Valkyrie.Accounts.User, path: "/auth"

@@ -1,5 +1,5 @@
 defmodule Valkyrie.Members do
-  use Ash.Domain, otp_app: :valkyrie, extensions: [AshAdmin.Domain]
+  use Ash.Domain, otp_app: :valkyrie, extensions: [AshAdmin.Domain, AshPaperTrail.Domain]
 
   require Logger
 
@@ -12,7 +12,15 @@ defmodule Valkyrie.Members do
     show? true
   end
 
+  paper_trail do
+    include_versions? true
+  end
+
   resources do
+    resource Valkyrie.Members.Member.Version do
+      define :list_versions, action: :read, default_options: [load: [:user, :version_source]]
+    end
+
     resource Valkyrie.Members.Member do
       define :change_keyholder_status, action: :change_keyholder_status
       define :list_members, action: :read
@@ -35,7 +43,6 @@ defmodule Valkyrie.Members do
          |> Enum.filter(&has_required_attributes?/1)
          |> Enum.map(&xhain_account_to_member_info/1)
          |> Enum.each(fn member ->
-           IO.inspect(member, label: "######## member before create")
            Ash.create!(Member, member, action: :create)
          end)}
 

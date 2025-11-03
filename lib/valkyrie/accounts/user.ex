@@ -85,6 +85,10 @@ defmodule Valkyrie.Accounts.User do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
     end
+
+    policy action_type(:read) do
+      authorize_if always()
+    end
   end
 
   attributes do

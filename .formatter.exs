@@ -4,6 +4,7 @@
     :ash_authentication_phoenix,
     :ash_authentication,
     :ash_sqlite,
+    :ash_paper_trail,
     :ash_phoenix,
     :ash,
     :reactor,
