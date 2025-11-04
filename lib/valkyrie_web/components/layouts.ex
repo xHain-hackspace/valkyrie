@@ -36,14 +36,14 @@ defmodule ValkyrieWeb.Layouts do
   def app(assigns) do
     ~H"""
     <.navbar id="navbar" rounded="large" padding="large" class="sticky">
-      <:list>
+      <:list icon="hero-user-group">
         <.link navigate="/members" title="Members">
-          <.icon name="hero-user-group" /> Members
+          Members
         </.link>
       </:list>
-      <:list>
+      <:list icon="hero-shield-exclamation">
         <.link navigate="/members/audit">
-          <.icon name="hero-shield-exclamation" /> Audit
+          Audit Log
         </.link>
       </:list>
     </.navbar>
