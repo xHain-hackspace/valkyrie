@@ -35,7 +35,7 @@ defmodule Valkyrie.Authentik do
     Logger.debug("Fetching users from page #{page}")
 
     case Tesla.get(client(), "/api/v3/core/users/",
-           query: [page: page, limit: 100, is_active: true]
+           query: [page: page,  page_size: 500, is_active: true]
          ) do
       {:ok, %Tesla.Env{status: 200, body: %{"results" => results, "pagination" => pagination}}} ->
         Logger.debug("Found #{length(results)} users on page #{page}")
