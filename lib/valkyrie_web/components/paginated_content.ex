@@ -4,6 +4,7 @@ defmodule ValkyrieWeb.Components.PaginatedContent do
   import ValkyrieWeb.Components.SearchField
 
   attr :search_query, :string, default: "", doc: "Search query"
+  attr :search_placeholder, :string, default: "Search...", doc: "Search placeholder"
   attr :pagination, :map, required: true, doc: "Pagination"
 
   slot :inner_block, required: true, doc: "Inner block that renders HEEx content"
@@ -16,7 +17,7 @@ defmodule ValkyrieWeb.Components.PaginatedContent do
           id="member-search"
           name="search_query"
           value={@search_query}
-          placeholder="Search by username..."
+          placeholder={@search_placeholder}
         />
       </.form>
     </div>

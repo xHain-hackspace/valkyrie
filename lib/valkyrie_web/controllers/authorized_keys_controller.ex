@@ -1,12 +1,15 @@
 defmodule ValkyrieWeb.AuthorizedKeysController do
   use ValkyrieWeb, :controller
-
   alias Valkyrie.Members.Member
+
+
 
   @doc """
   Serves the authorized_keys file with SSH public keys from all members.
   """
   def authorized_keys(conn, _params) do
+    Valkyrie.Members.access(%{resource_name: "authorized_keys"})
+
     conn
     |> put_resp_header("content-type", "application/octet-stream")
     |> text(build_authorized_keys_content())

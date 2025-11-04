@@ -69,6 +69,8 @@ defmodule Valkyrie.Members.Member do
 
   attributes do
     uuid_primary_key :id
+    create_timestamp :created_at
+    update_timestamp :updated_at
 
     attribute :username, :string do
       description "The username of the member"

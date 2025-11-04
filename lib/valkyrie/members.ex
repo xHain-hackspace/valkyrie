@@ -29,6 +29,10 @@ defmodule Valkyrie.Members do
       define :delete_member, action: :destroy
       define :update_manual_entry, action: :update_manual_entry
     end
+
+    resource Valkyrie.Members.LastAccess do
+      define :access, action: :access
+    end
   end
 
   def get_member_by_username(username) do

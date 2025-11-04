@@ -19,6 +19,10 @@ config :ash,
   bulk_actions_default_to_errors?: true,
   transaction_rollback_on_error?: true
 
+
+config :valkyrie, ValkyrieWeb.Endpoint,
+  pubsub_server: Valkyrie.PubSub
+
 config :spark,
   formatter: [
     remove_parens?: true,

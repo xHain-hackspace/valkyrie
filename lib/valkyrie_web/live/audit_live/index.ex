@@ -19,10 +19,12 @@ defmodule ValkyrieWeb.AuditLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <.header>
-        <:title>Audit</:title>
-      </.header>
-      <.paginated_content search_query={@search_query} pagination={@pagination}>
+    Audit Log
+      <.paginated_content
+        search_query={@search_query}
+        search_placeholder="Search Entity..."
+        pagination={@pagination}
+      >
         <.table rows={@streams.audit} thead_class="text-lg font-extrabold" rounded="large">
           <:col :let={{_id, version}} label="Timestamp">
             <%= if version.version_inserted_at do %>
@@ -49,6 +51,9 @@ defmodule ValkyrieWeb.AuditLive.Index do
               <% end %>
             <% end %>
           </:col>
+          <:col :let={{_id, version}} label="Action">
+            {version.version_action_name}
+          </:col>
           <:col :let={{_id, version}} label="Entity">{version.version_source.username}</:col>
         </.table>
       </.paginated_content>
@@ -61,16 +66,22 @@ defmodule ValkyrieWeb.AuditLive.Index do
     current_page = socket.assigns.pagination.page
     offset = (current_page - 1) * page_size
 
+    search_filter =
+      if socket.assigns.search_query != "" do
+        [version_source: [username: [contains: "#{socket.assigns.search_query}"]]]
+      else
+        []
+      end
+
     case Valkyrie.Members.list_versions(
            page: [limit: page_size, offset: offset, count: true],
            query: [
-             sort: [version_inserted_at: :desc]
+             sort: [version_inserted_at: :desc],
+             filter: [search_filter]
            ]
          ) do
       {:ok, page} ->
         number_of_pages = div(page.count + page_size - 1, page_size)
-
-        page.results |> Enum.at(length(page.results) - 1) |> IO.inspect()
 
         socket
         |> assign(:pagination, %{
@@ -134,6 +145,15 @@ defmodule ValkyrieWeb.AuditLive.Index do
        socket.assigns.pagination
        | page: socket.assigns.pagination.page - 1
      })
+     |> update_audit_list()}
+  end
+
+  @impl true
+  def handle_event("search", %{"search_query" => query}, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_query, query)
+     |> assign(:pagination, %{socket.assigns.pagination | page: 1})
      |> update_audit_list()}
   end
 end

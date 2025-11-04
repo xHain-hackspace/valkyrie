@@ -4,17 +4,36 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   alias Valkyrie.Members
   alias Valkyrie.Members.Member
+  alias Valkyrie.Members.LastAccess
+  alias DateTime
+
+  @last_access_authorized_keys_topic "last_access:authorized_keys"
+
+  def init(_params, _session, socket) do
+    Logger.debug("Initializing member live index")
+    Valkyrie.Members.access(%{resource_name: "authorized_keys"})
+    {:noreply, socket}
+  end
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Logger.debug("Subscribing to #{@last_access_authorized_keys_topic}")
+      ValkyrieWeb.Endpoint.subscribe(@last_access_authorized_keys_topic)
+    end
     {:ok,
      socket
      |> assign(:page_title, "Listing Members")
-     |> assign_new(:current_user, fn -> nil end)
      |> assign(:updating, false)
      |> assign(:search_query, "")
      |> assign(:pagination, %{page: 1, page_size: 20, total: 0})
+     |> assign(:statuses, %{})
      |> update_member_list()}
+  end
+
+  @impl true
+  def handle_info(%{topic: @last_access_authorized_keys_topic}, socket) do
+    {:noreply, update_member_list(socket)}
   end
 
   @impl true
@@ -98,7 +117,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
          ) do
       {:ok, updated} ->
         Logger.info("Updated member #{member_id}: #{inspect(updated)}")
-        {:noreply, stream_insert(socket, :members, updated)}
+        {:noreply, stream_insert(socket, :members, add_status_to_member(updated))}
 
       {:error, _reason} ->
         Logger.error("Failed to update member #{member_id}")
@@ -149,8 +168,13 @@ defmodule ValkyrieWeb.MemberLive.Index do
          ) do
       {:ok, page} ->
         number_of_pages = div(page.count + page_size - 1, page_size)
+        # statuses = Enum.map(page.results, fn member ->
+        #   {member.id, get_status(member)}
+        # end) |> Enum.into(%{}) |> IO.inspect()
+        page = %{page | results: page.results |> Enum.map(&add_status_to_member/1)}
 
         socket
+        # |> assign(:statuses, statuses)
         |> assign(:pagination, %{
           socket.assigns.pagination
           | total: number_of_pages
@@ -167,6 +191,22 @@ defmodule ValkyrieWeb.MemberLive.Index do
     []
     |> maybe_add_manual_entry_status(member)
     |> maybe_add_invalid_ssh_key_status(member)
+    |> add_authorized_keys_status(member)
+  end
+
+  defp add_authorized_keys_status(status, member) do
+    case Ash.get(LastAccess, %{resource_name: "authorized_keys"}) do
+
+      {:ok, %LastAccess{last_access: last_access}} ->
+        if DateTime.diff(last_access, member.updated_at, :second) > 0 do
+          [{:synced, "State synced to door."} | status]
+        else
+          [{:warning, "State not yet synced to door."} | status]
+        end
+
+      _ ->
+        status
+    end
   end
 
   defp maybe_add_manual_entry_status(status, member) do
@@ -189,4 +229,13 @@ defmodule ValkyrieWeb.MemberLive.Index do
         status
     end
   end
+
+  defp add_status_to_member(member) do
+    Map.put(member, :_status, get_status(member))
+  end
+
+  defp remove_status_from_member(member) do
+    Map.delete(member, :_status)
+  end
+
 end
