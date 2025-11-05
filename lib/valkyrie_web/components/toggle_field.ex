@@ -135,7 +135,7 @@ defmodule ValkyrieWeb.Components.ToggleField do
           ]}>
           </div>
           <div class={[
-            "bg-default-light-gray dark:bg-natural-light transition-all ease-in-out duration-500 toggle-field-base",
+            "bg-default-gray dark:bg-natural-light transition-all ease-in-out duration-500 toggle-field-base",
             color_class(@color),
             @toggle_base_class
           ]}>
