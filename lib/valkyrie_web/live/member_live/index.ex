@@ -2,6 +2,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
   use ValkyrieWeb, :live_view
   use ValkyrieWeb.PaginationHelpers, update_function: :update_member_list
   require Logger
+  require Ash.Query
 
   alias Valkyrie.Members
   alias Valkyrie.Members.Member
@@ -22,12 +23,32 @@ defmodule ValkyrieWeb.MemberLive.Index do
      |> assign(:page_title, "Listing Members")
      |> assign(:updating, false)
      |> assign(:search_query, "")
+     |> assign(:filters, %{
+       "only_manual_entries" => false,
+       "only_active_members" => true,
+       "only_keyholders" => false
+     })
      |> update_member_list()}
   end
 
   @impl true
   def handle_info(%{topic: @last_access_authorized_keys_topic}, socket) do
     {:noreply, update_member_list(socket)}
+  end
+
+  defp filters_from_form(form) do
+    form
+    |> Map.reject(fn {key, _value} -> String.starts_with?(key, "_") end)
+    |> Enum.map(fn {key, value} ->
+      {key, Phoenix.HTML.Form.normalize_value("checkbox", value)}
+    end)
+    |> Map.new()
+    |> IO.inspect(label: "filters_from_form")
+  end
+
+  @impl true
+  def handle_event("filter_changed", form, socket) do
+    {:noreply, socket |> assign(:filters, filters_from_form(form)) |> update_member_list()}
   end
 
   @impl true
@@ -81,21 +102,19 @@ defmodule ValkyrieWeb.MemberLive.Index do
       |> Map.get(:page, %{})
       |> Map.get(:offset, 0)
 
-    search_filter =
-      if socket.assigns.search_query |> String.trim() != "" do
-        [username: [contains: "#{socket.assigns.search_query}"]]
-      else
-        []
-      end
+    query =
+      Member
+      |> Ash.Query.sort(:username)
+      |> maybe_add_search_filter(socket.assigns.search_query)
+      |> maybe_filter_only_active_members(socket)
+      |> maybe_filter_only_manual_entries(socket)
+      |> maybe_filter_only_keyholders(socket)
+      |> IO.inspect(label: "query")
 
     case Members.list_members(
            page: [limit: 20, offset: offset, count: true],
            actor: socket.assigns.current_user,
-           query: [
-             sort: :username,
-             filter: [is_active: true],
-             filter_input: search_filter
-           ]
+           query: query
          ) do
       {:ok, page} ->
         page = %{page | results: page.results |> Enum.map(&add_status_to_member/1)}
@@ -106,6 +125,38 @@ defmodule ValkyrieWeb.MemberLive.Index do
       {:error, reason} ->
         socket
         |> put_flash(:error, "Failed to list members: #{reason}")
+    end
+  end
+
+  defp maybe_filter_only_manual_entries(query, socket) do
+    if socket.assigns.filters["only_manual_entries"] == true do
+      query |> Ash.Query.filter(is_manual_entry: true)
+    else
+      query
+    end
+  end
+
+  defp maybe_filter_only_active_members(query, socket) do
+    if socket.assigns.filters["only_active_members"] == true do
+      query |> Ash.Query.filter(is_active: true)
+    else
+      query
+    end
+  end
+
+  defp maybe_filter_only_keyholders(query, socket) do
+    if socket.assigns.filters["only_keyholders"] == true do
+      query |> Ash.Query.filter(has_key: true)
+    else
+      query
+    end
+  end
+
+  defp maybe_add_search_filter(query, search_query) do
+    if search_query |> String.trim() != "" do
+      query |> Ash.Query.filter_input(username: [contains: search_query])
+    else
+      query
     end
   end
 

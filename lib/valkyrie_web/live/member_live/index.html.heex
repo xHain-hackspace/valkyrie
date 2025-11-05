@@ -1,15 +1,49 @@
 <Layouts.app flash={@flash}>
   <.header>
     <:actions>
-      <.button_link navigate={~p"/members/new"}>
-        <.icon name="hero-plus" /> Add manual keyholder
-      </.button_link>
-      <.button phx-click="sync_members" phx-disable-with="Updating..." disabled={@updating}>
-        <.icon name="hero-arrow-path" /> Sync members
-      </.button>
+      <div class="flex flex-row gap-20 items-center">
+        <div>
+          <.form_wrapper
+            for={to_form(@filters)}
+            phx-change="filter_changed"
+            phx-debounce="600"
+          >
+            <div class="flex flex-row gap-5">
+              <.toggle_field
+                field={@filters[:only_manual_entries]}
+                checked={toggle_check(:only_manual_entries, to_form(@filters))}
+                label="Only Manual Entries"
+                name="only_manual_entries"
+                class="flex flex-col gap-2 items-center"
+              />
+              <.toggle_field
+                field={@filters[:only_active_members]}
+                checked={toggle_check(:only_active_members, to_form(@filters))}
+                label="Only Members"
+                name="only_active_members"
+                class="flex flex-col gap-2 items-center"
+              />
+              <.toggle_field
+                field={@filters[:only_keyholders]}
+                checked={toggle_check(:only_keyholders, to_form(@filters))}
+                label="Only Keyholders"
+                name="only_keyholders"
+                class="flex flex-col gap-2 items-center"
+              />
+            </div>
+          </.form_wrapper>
+        </div>
+        <div>
+          <.button_link navigate={~p"/members/new"}>
+            <.icon name="hero-plus" /> Add manual keyholder
+          </.button_link>
+          <.button phx-click="sync_members" phx-disable-with="Updating..." disabled={@updating}>
+            <.icon name="hero-arrow-path" /> Sync members
+          </.button>
+        </div>
+      </div>
     </:actions>
   </.header>
-
   <.paginated_content search_query={@search_query} page={@page}>
     <.table
       id="members"
