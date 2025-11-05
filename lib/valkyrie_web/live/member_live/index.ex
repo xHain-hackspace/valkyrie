@@ -219,7 +219,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   defp maybe_add_invalid_ssh_key_status(status, member) do
     cond do
-      member.ssh_public_key == "" or member.ssh_public_key == nil ->
+      is_nil(member.ssh_public_key) or member.ssh_public_key == "" ->
         status
 
       not Member.ssh_public_key_valid?(member.ssh_public_key) ->
@@ -233,9 +233,4 @@ defmodule ValkyrieWeb.MemberLive.Index do
   defp add_status_to_member(member) do
     Map.put(member, :_status, get_status(member))
   end
-
-  defp remove_status_from_member(member) do
-    Map.delete(member, :_status)
-  end
-
 end

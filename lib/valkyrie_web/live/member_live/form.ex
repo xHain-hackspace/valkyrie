@@ -102,7 +102,6 @@ defmodule ValkyrieWeb.MemberLive.Form do
           actor: socket.assigns.current_user
         )
       end
-      |> IO.inspect(label: "########form")
 
     assign(socket, form: to_form(form))
   end

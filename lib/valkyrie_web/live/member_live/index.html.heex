@@ -20,7 +20,7 @@
       <:col :let={{_id, member}} label="Username">{member.username}</:col>
 
       <:col :let={{_id, member}} label="SSH Public Key">
-        <%= if member.ssh_public_key && member.ssh_public_key != "" do %>
+        <%= if not is_nil(member.ssh_public_key) and member.ssh_public_key != "" do %>
           <.tooltip text={member.ssh_public_key}>
             <:trigger>
               <span class="font-light break-all">

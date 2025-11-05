@@ -67,9 +67,9 @@ defmodule Valkyrie.Members do
   end
 
   defp has_required_attributes?(xhain_account) do
-    has_username = xhain_account.username != nil and xhain_account.username != ""
-    has_xhain_account_id = xhain_account.xhain_account_id != nil
-    has_tree_name = xhain_account.tree_name != nil and xhain_account.tree_name != ""
+    has_username = not is_nil(xhain_account.username) and xhain_account.username != ""
+    has_xhain_account_id = not is_nil(xhain_account.xhain_account_id)
+    has_tree_name = not is_nil(xhain_account.tree_name) and xhain_account.tree_name != ""
 
     if not has_username or not has_xhain_account_id or not has_tree_name do
       Logger.warning(
