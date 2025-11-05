@@ -10,6 +10,7 @@ defmodule Valkyrie.Members.LastAccess do
 
   actions do
     defaults [:read]
+
     create :access do
       primary? true
       accept [:resource_name]
@@ -17,9 +18,17 @@ defmodule Valkyrie.Members.LastAccess do
       change fn changeset, _ ->
         Ash.Changeset.change_attributes(changeset, %{last_access: DateTime.utc_now()})
       end
+
       upsert? true
       upsert_identity :unique_resource_name
     end
+  end
+
+  pub_sub do
+    module ValkyrieWeb.Endpoint
+    prefix "last_access"
+
+    publish :access, [:resource_name, nil]
   end
 
   attributes do
@@ -38,12 +47,5 @@ defmodule Valkyrie.Members.LastAccess do
 
   identities do
     identity :unique_resource_name, [:resource_name], pre_check?: true
-  end
-
-  pub_sub do
-    module ValkyrieWeb.Endpoint
-    prefix "last_access"
-
-    publish :access, [:resource_name, nil]
   end
 end
