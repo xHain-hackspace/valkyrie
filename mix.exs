@@ -79,7 +79,6 @@ defmodule Valkyrie.MixProject do
       {:jason, "~> 1.4"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:tesla, "~> 1.11"},
       {:mint, "~> 1.0"},
       {:ex_crypto, "~> 0.10"}
     ]

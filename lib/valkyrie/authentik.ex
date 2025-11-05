@@ -19,25 +19,17 @@ defmodule Valkyrie.Authentik do
     Application.fetch_env!(:valkyrie, :authentik_url)
   end
 
-  defp client do
-    middleware = [
-      {Tesla.Middleware.BaseUrl, base_url()},
-      {Tesla.Middleware.BearerAuth, token: bearer_token()},
-      {Tesla.Middleware.JSON, engine: JSON}
-    ]
-
-    adapter = {Tesla.Adapter.Mint, timeout: 20_000}
-
-    Tesla.client(middleware, adapter)
-  end
-
   defp do_get_all_users(page \\ 1, acc \\ []) do
     Logger.debug("Fetching users from page #{page}")
 
-    case Tesla.get(client(), "/api/v3/core/users/",
-           query: [page: page,  page_size: 500, is_active: true]
+    url = "#{base_url()}/api/v3/core/users/"
+
+    case Req.get(url,
+           auth: {:bearer, bearer_token()},
+           params: [page: page, page_size: 20, is_active: true],
+           receive_timeout: 20_000
          ) do
-      {:ok, %Tesla.Env{status: 200, body: %{"results" => results, "pagination" => pagination}}} ->
+      {:ok, %Req.Response{status: 200, body: %{"results" => results, "pagination" => pagination}}} ->
         Logger.debug("Found #{length(results)} users on page #{page}")
 
         new_acc = Enum.concat(acc, results)
@@ -52,7 +44,7 @@ defmodule Valkyrie.Authentik do
             {:ok, new_acc}
         end
 
-      {:ok, %Tesla.Env{status: status}} when status != 200 ->
+      {:ok, %Req.Response{status: status}} ->
         {:error, "API returned status #{status}"}
 
       {:error, reason} ->
