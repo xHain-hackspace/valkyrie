@@ -1,16 +1,11 @@
 defmodule ValkyrieWeb.AuditLive.Index do
   use ValkyrieWeb, :live_view
+  use ValkyrieWeb.PaginationHelpers, update_function: :update_audit_list
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:pagination, %{
-       page: 1,
-       page_size: 100,
-       total: 0,
-       total_pages: 0
-     })
      |> assign(:search_query, "")
      |> update_audit_list()}
   end
@@ -19,11 +14,11 @@ defmodule ValkyrieWeb.AuditLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-    Audit Log
+      Audit Log
       <.paginated_content
         search_query={@search_query}
         search_placeholder="Search Entity..."
-        pagination={@pagination}
+        page={@page}
       >
         <.table rows={@streams.audit} thead_class="text-lg font-extrabold" rounded="large">
           <:col :let={{_id, version}} label="Timestamp">
@@ -61,99 +56,33 @@ defmodule ValkyrieWeb.AuditLive.Index do
     """
   end
 
-  defp update_audit_list(socket) do
-    page_size = socket.assigns.pagination.page_size
-    current_page = socket.assigns.pagination.page
-    offset = (current_page - 1) * page_size
+  def update_audit_list(socket) do
+    offset =
+      socket.assigns
+      |> Map.get(:page, %{})
+      |> Map.get(:offset, 0)
 
     search_filter =
-      if socket.assigns.search_query != "" do
+      if socket.assigns.search_query |> String.trim() != "" do
         [version_source: [username: [contains: "#{socket.assigns.search_query}"]]]
       else
         []
       end
 
     case Valkyrie.Members.list_versions(
-           page: [limit: page_size, offset: offset, count: true],
+           page: [limit: 20, offset: offset, count: true],
            query: [
              sort: [version_inserted_at: :desc],
              filter: [search_filter]
            ]
          ) do
       {:ok, page} ->
-        number_of_pages = div(page.count + page_size - 1, page_size)
-
         socket
-        |> assign(:pagination, %{
-          socket.assigns.pagination
-          | total: number_of_pages
-        })
         |> AshPhoenix.LiveView.assign_page_and_stream_result(page, results_key: :audit)
 
       {:error, error} ->
         socket
         |> put_flash(:error, "Failed to load audit data: #{inspect(error)}")
     end
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "select", "page" => page}, socket) do
-    page =
-      case page do
-        page when is_integer(page) -> page
-        page when is_binary(page) -> String.to_integer(page)
-      end
-
-    {:noreply,
-     socket
-     |> assign(:pagination, %{socket.assigns.pagination | page: page})
-     |> update_audit_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "first"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{socket.assigns.pagination | page: 1})
-     |> update_audit_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "last"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{socket.assigns.pagination | page: socket.assigns.pagination.total})
-     |> update_audit_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "next"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{
-       socket.assigns.pagination
-       | page: socket.assigns.pagination.page + 1
-     })
-     |> update_audit_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "previous"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{
-       socket.assigns.pagination
-       | page: socket.assigns.pagination.page - 1
-     })
-     |> update_audit_list()}
-  end
-
-  @impl true
-  def handle_event("search", %{"search_query" => query}, socket) do
-    {:noreply,
-     socket
-     |> assign(:search_query, query)
-     |> assign(:pagination, %{socket.assigns.pagination | page: 1})
-     |> update_audit_list()}
   end
 end

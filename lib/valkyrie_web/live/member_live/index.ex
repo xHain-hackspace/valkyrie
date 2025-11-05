@@ -1,5 +1,6 @@
 defmodule ValkyrieWeb.MemberLive.Index do
   use ValkyrieWeb, :live_view
+  use ValkyrieWeb.PaginationHelpers, update_function: :update_member_list
   require Logger
 
   alias Valkyrie.Members
@@ -9,25 +10,18 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   @last_access_authorized_keys_topic "last_access:authorized_keys"
 
-  def init(_params, _session, socket) do
-    Logger.debug("Initializing member live index")
-    Valkyrie.Members.access(%{resource_name: "authorized_keys"})
-    {:noreply, socket}
-  end
-
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Logger.debug("Subscribing to #{@last_access_authorized_keys_topic}")
       ValkyrieWeb.Endpoint.subscribe(@last_access_authorized_keys_topic)
     end
+
     {:ok,
      socket
      |> assign(:page_title, "Listing Members")
      |> assign(:updating, false)
      |> assign(:search_query, "")
-     |> assign(:pagination, %{page: 1, page_size: 20, total: 0})
-     |> assign(:statuses, %{})
      |> update_member_list()}
   end
 
@@ -42,69 +36,6 @@ defmodule ValkyrieWeb.MemberLive.Index do
     Ash.destroy!(member, actor: socket.assigns.current_user)
 
     {:noreply, stream_delete(socket, :members, member)}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "select", "page" => page}, socket) do
-    page =
-      case page do
-        page when is_integer(page) -> page
-        page when is_binary(page) -> String.to_integer(page)
-      end
-
-    {:noreply,
-     socket
-     |> assign(:pagination, %{socket.assigns.pagination | page: page})
-     |> update_member_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "first"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{socket.assigns.pagination | page: 1})
-     |> update_member_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "last"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{socket.assigns.pagination | page: socket.assigns.pagination.total})
-     |> update_member_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "next"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{
-       socket.assigns.pagination
-       | page: socket.assigns.pagination.page + 1
-     })
-     |> update_member_list()}
-  end
-
-  @impl true
-  def handle_event("pagination", %{"action" => "previous"}, socket) do
-    {:noreply,
-     socket
-     |> assign(:pagination, %{
-       socket.assigns.pagination
-       | page: socket.assigns.pagination.page - 1
-     })
-     |> update_member_list()}
-  end
-
-  @impl true
-  def handle_event("search", %{"search_query" => query}, socket) do
-    Logger.info("Searching for #{query}")
-
-    {:noreply,
-     socket
-     |> assign(:search_query, query)
-     |> assign(:pagination, %{socket.assigns.pagination | page: 1})
-     |> update_member_list()}
   end
 
   @impl true
@@ -144,21 +75,21 @@ defmodule ValkyrieWeb.MemberLive.Index do
     end
   end
 
-  defp update_member_list(socket) do
-    page_size = socket.assigns.pagination.page_size
-    current_page = socket.assigns.pagination.page
-    offset = (current_page - 1) * page_size
-    search_query = socket.assigns.search_query |> String.trim()
+  def update_member_list(socket) do
+    offset =
+      socket.assigns
+      |> Map.get(:page, %{})
+      |> Map.get(:offset, 0)
 
     search_filter =
-      if search_query != "" do
-        [username: [contains: "#{search_query}"]]
+      if socket.assigns.search_query |> String.trim() != "" do
+        [username: [contains: "#{socket.assigns.search_query}"]]
       else
         []
       end
 
     case Members.list_members(
-           page: [limit: page_size, offset: offset, count: true],
+           page: [limit: 20, offset: offset, count: true],
            actor: socket.assigns.current_user,
            query: [
              sort: :username,
@@ -167,18 +98,9 @@ defmodule ValkyrieWeb.MemberLive.Index do
            ]
          ) do
       {:ok, page} ->
-        number_of_pages = div(page.count + page_size - 1, page_size)
-        # statuses = Enum.map(page.results, fn member ->
-        #   {member.id, get_status(member)}
-        # end) |> Enum.into(%{}) |> IO.inspect()
         page = %{page | results: page.results |> Enum.map(&add_status_to_member/1)}
 
         socket
-        # |> assign(:statuses, statuses)
-        |> assign(:pagination, %{
-          socket.assigns.pagination
-          | total: number_of_pages
-        })
         |> AshPhoenix.LiveView.assign_page_and_stream_result(page, results_key: :members)
 
       {:error, reason} ->
@@ -196,7 +118,6 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   defp add_authorized_keys_status(status, member) do
     case Ash.get(LastAccess, %{resource_name: "authorized_keys"}) do
-
       {:ok, %LastAccess{last_access: last_access}} ->
         if DateTime.diff(last_access, member.updated_at, :second) > 0 do
           [{:synced, "State synced to door."} | status]
@@ -205,7 +126,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
         end
 
       _ ->
-        status
+        [{:warning, "State not yet synced to door."} | status]
     end
   end
 

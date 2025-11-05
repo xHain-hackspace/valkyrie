@@ -10,7 +10,7 @@
     </:actions>
   </.header>
 
-  <.paginated_content search_query={@search_query} pagination={@pagination}>
+  <.paginated_content search_query={@search_query} page={@page}>
     <.table
       id="members"
       rows={@streams.members}
