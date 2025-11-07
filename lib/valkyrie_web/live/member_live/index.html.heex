@@ -37,13 +37,63 @@
           <.button_link navigate={~p"/members/new"}>
             <.icon name="hero-plus" /> Add manual keyholder
           </.button_link>
-          <.button phx-click="sync_members" phx-disable-with="Updating..." disabled={@updating}>
+          <.button
+            phx-click="sync_members"
+            phx-disable-with="Syncing..."
+            disabled={@sync_progress && @sync_progress.status != :completed}
+          >
             <.icon name="hero-arrow-path" /> Sync members
           </.button>
         </div>
       </div>
     </:actions>
   </.header>
+  <%= if not is_nil(@sync_progress) do %>
+    <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          Syncing members from Authentik...
+        </h3>
+        <span class="text-xs text-blue-700 dark:text-blue-300">
+          <%= case @sync_progress.status do %>
+            <% :in_progress -> %>
+              Fetching users...
+            <% :processing -> %>
+              Processing users...
+            <% :completed -> %>
+              Completed
+            <% :error -> %>
+              Error
+          <% end %>
+        </span>
+      </div>
+      <%= if @sync_progress.status == :in_progress and not is_nil(@sync_progress.total_pages) and @sync_progress.total_pages > 0 do %>
+        <div class="mb-2">
+          <div class="flex justify-between text-xs text-blue-700 dark:text-blue-300 mb-1">
+            <span>
+              Page {@sync_progress.page} of {@sync_progress.total_pages}
+            </span>
+            <span>
+              {@sync_progress.users_fetched} users fetched
+            </span>
+          </div>
+          <div class="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+            <% progress_percent =
+              min(100, trunc(@sync_progress.page / @sync_progress.total_pages * 100)) %>
+            <div
+              class="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
+              style={"width: #{progress_percent}%"}
+            >
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-xs text-blue-700 dark:text-blue-300">
+          {@sync_progress.users_fetched} users fetched
+        </div>
+      <% end %>
+    </div>
+  <% end %>
   <.paginated_content search_query={@search_query} page={@page}>
     <.table
       id="members"

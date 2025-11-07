@@ -14,6 +14,7 @@ defmodule Valkyrie.Application do
        repos: Application.fetch_env!(:valkyrie, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:valkyrie, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Valkyrie.PubSub},
+      Valkyrie.Members.SyncState,
       # Start a worker by calling: Valkyrie.Worker.start_link(arg)
       # {Valkyrie.Worker, arg},
       # Start to serve requests, typically the last entry

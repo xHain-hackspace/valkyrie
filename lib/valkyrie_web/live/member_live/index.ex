@@ -7,6 +7,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
   alias Valkyrie.Members
   alias Valkyrie.Members.Member
   alias Valkyrie.Members.LastAccess
+  alias Valkyrie.Members.SyncState
   alias DateTime
 
   @last_access_authorized_keys_topic "last_access:authorized_keys"
@@ -14,14 +15,15 @@ defmodule ValkyrieWeb.MemberLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      Logger.debug("Subscribing to #{@last_access_authorized_keys_topic}")
       ValkyrieWeb.Endpoint.subscribe(@last_access_authorized_keys_topic)
+      ValkyrieWeb.Endpoint.subscribe("sync_members:progress")
     end
 
     {:ok,
      socket
      |> assign(:page_title, "Listing Members")
      |> assign(:updating, false)
+     |> assign(:sync_progress, nil)
      |> assign(:search_query, "")
      |> assign(:filters, %{
        "only_manual_entries" => false,
@@ -36,6 +38,46 @@ defmodule ValkyrieWeb.MemberLive.Index do
     {:noreply, update_member_list(socket)}
   end
 
+  @impl true
+  def handle_info({ref, _result}, socket) when is_reference(ref) do
+    # Ignore Task completion messages - we handle progress via PubSub
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    # Ignore Task termination messages - we handle completion via PubSub
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:sync_progress, progress}, socket) do
+    socket =
+      socket
+      |> assign(:sync_progress, progress)
+
+    socket =
+      case progress.status do
+        :completed ->
+          socket
+          |> put_flash(:info, "Members synced successfully (#{progress.users_fetched} users)")
+          |> assign(:sync_progress, nil)
+          |> update_member_list()
+
+        :error ->
+          error_msg = Map.get(progress, :error, "Unknown error")
+
+          socket
+          |> put_flash(:error, "Failed to sync members: #{error_msg}")
+          |> assign(:sync_progress, nil)
+
+        _ ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
   defp filters_from_form(form) do
     form
     |> Map.reject(fn {key, _value} -> String.starts_with?(key, "_") end)
@@ -43,7 +85,6 @@ defmodule ValkyrieWeb.MemberLive.Index do
       {key, Phoenix.HTML.Form.normalize_value("checkbox", value)}
     end)
     |> Map.new()
-    |> IO.inspect(label: "filters_from_form")
   end
 
   @impl true
@@ -79,20 +120,29 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   @impl true
   def handle_event("sync_members", _params, socket) do
-    socket = assign(socket, :updating, true)
+    # Check if sync is already running
+    if SyncState.is_syncing?() do
+      {:noreply,
+       socket
+       |> put_flash(:error, "Sync is already in progress. Please wait for it to complete.")}
+    else
+      # Start async sync
+      case Members.update_members_from_xhain_account_system_async() do
+        {:ok, _task} ->
+          {:noreply,
+           socket
+           |> assign(:sync_progress, %{
+             page: nil,
+             total_pages: nil,
+             users_fetched: 0,
+             status: :in_progress
+           })}
 
-    case Valkyrie.Members.update_members_from_xhain_account_system() do
-      {:ok, _members} ->
-        {:noreply,
-         update_member_list(socket)
-         |> assign(:updating, false)
-         |> put_flash(:info, "Members synced successfully")}
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> assign(:updating, false)
-         |> put_flash(:error, "Failed to sync members: #{reason}")}
+        {:error, reason} ->
+          {:noreply,
+           socket
+           |> put_flash(:error, "Failed to start sync: #{reason}")}
+      end
     end
   end
 
@@ -109,7 +159,6 @@ defmodule ValkyrieWeb.MemberLive.Index do
       |> maybe_filter_only_active_members(socket)
       |> maybe_filter_only_manual_entries(socket)
       |> maybe_filter_only_keyholders(socket)
-      |> IO.inspect(label: "query")
 
     case Members.list_members(
            page: [limit: 20, offset: offset, count: true],
