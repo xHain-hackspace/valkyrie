@@ -58,8 +58,8 @@
           <.tooltip text={member.ssh_public_key}>
             <:trigger>
               <span class="font-light break-all">
-                {String.slice(member.ssh_public_key, 0, 15) <>
-                  "..." <> String.slice(member.ssh_public_key, -10, 10)}
+                {String.slice(member.ssh_public_key, 0, 11) <>
+                  "..." <> String.slice(member.ssh_public_key, -15, 15)}
               </span>
             </:trigger>
           </.tooltip>
