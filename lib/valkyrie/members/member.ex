@@ -10,6 +10,7 @@ defmodule Valkyrie.Members.Member do
     store_action_name? true
     belongs_to_actor :user, destination: Valkyrie.Accounts.User, public?: true
     on_actions [:create_manual_entry, :update_manual_entry, :change_keyholder_status]
+    create_version_on_destroy? false
   end
 
   sqlite do
