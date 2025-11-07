@@ -1,0 +1,20 @@
+---
+services:
+  valkyrie:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 4000:4000
+    environment:
+      - PORT=4000
+      - DATABASE_PATH=/app/valkyrie.db
+      - POOL_SIZE=10
+      - SECRET_KEY_BASE=EwbrYaupLIskf7Ki6bTlKUSmvhzFu4/hYBmzSC/VGNx/sAJFz9ctychRV15d9iO3
+      - TOKEN_SIGNING_SECRET=nooroo2iukohx1xeeDoo2johy8puu2EiWah5ol7bohkuYoo3jebooshohgahjame
+      - PHX_HOST=localhost
+    volumes:
+        - ./scripts:/app/scripts
+    env_file:
+      - .env
+    network_mode: host
