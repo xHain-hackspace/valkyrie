@@ -1,11 +1,20 @@
 defmodule ValkyrieWeb.AuthorizedKeysController do
   use ValkyrieWeb, :controller
   alias Valkyrie.Members.Member
+  require Logger
 
   @doc """
   Serves the authorized_keys file with SSH public keys from all members.
   """
   def authorized_keys(conn, _params) do
+    # get the X-Door header
+    x_door =
+      conn.req_headers
+      |> Enum.find(fn {key, _} -> String.downcase(key) == "X-door-hostname" end)
+      |> elem(1)
+
+    Logger.info("Requesting authorized keys for xDoor: #{x_door}")
+
     Valkyrie.Members.access(%{resource_name: "authorized_keys"})
 
     conn
