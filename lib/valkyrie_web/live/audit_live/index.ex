@@ -39,7 +39,7 @@ defmodule ValkyrieWeb.AuditLive.Index do
             <%= for {key, value} <- version.changes do %>
               <%= if not Map.has_key?(value, "unchanged") do %>
                 <div class="flex flex-col">
-                  <span class="font-light text-gray-500">
+                  <span class="font-light text-gray-500 break-all">
                     changed {key} from {Map.get(value, "from", "-")} to {Map.get(value, "to", "-")}
                   </span>
                 </div>
