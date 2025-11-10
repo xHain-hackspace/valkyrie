@@ -208,7 +208,10 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   defp maybe_add_search_filter(query, search_query) do
     if search_query |> String.trim() != "" do
-      query |> Ash.Query.filter_input(username: [contains: search_query])
+      query
+      |> Ash.Query.filter_input(
+        or: [username: [contains: search_query], tree_name: [contains: search_query]]
+      )
     else
       query
     end

@@ -102,6 +102,7 @@
       rounded="large"
     >
       <:col :let={{_id, member}} label="Username">{member.username}</:col>
+      <:col :let={{_id, member}} label="Tree">{member.tree_name}</:col>
 
       <:col :let={{_id, member}} label="SSH Public Key">
         <%= if not is_nil(member.ssh_public_key) and member.ssh_public_key != "" do %>
