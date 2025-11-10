@@ -41,6 +41,7 @@ defmodule Valkyrie.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:ash_archival, "~> 2.0"},
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_paper_trail, "~> 0.5"},

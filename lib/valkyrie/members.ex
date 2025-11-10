@@ -21,7 +21,7 @@ defmodule Valkyrie.Members do
 
   resources do
     resource Valkyrie.Members.Member.Version do
-      define :list_versions, action: :read, default_options: [load: [:user, :version_source]]
+      define :list_versions, action: :read, default_options: [load: [:user]]
     end
 
     resource Valkyrie.Members.Member do
@@ -31,6 +31,13 @@ defmodule Valkyrie.Members do
       define :create_manual_entry, action: :create_manual_entry
       define :delete_member, action: :destroy
       define :update_manual_entry, action: :update_manual_entry
+      define :read_for_audit_log, action: :read_for_audit_log
+
+      define :get_by_id,
+        action: :read,
+        get_by: [:id]
+
+      define :delete, action: :destroy
     end
 
     resource Valkyrie.Members.LastAccess do

@@ -94,10 +94,15 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    member = Ash.get!(Member, id, actor: socket.assigns.current_user)
-    Ash.destroy!(member, actor: socket.assigns.current_user)
-
-    {:noreply, stream_delete(socket, :members, member)}
+    try do
+      {:ok, member} = Members.get_by_id(id, actor: socket.assigns.current_user)
+      Members.delete(member, actor: socket.assigns.current_user)
+      {:noreply, stream_delete(socket, :members, member)}
+    rescue
+      e ->
+        Logger.error("Failed to delete member: #{inspect(e)}")
+        {:noreply, socket |> put_flash(:error, "Failed to delete member: #{inspect(e)}")}
+    end
   end
 
   @impl true

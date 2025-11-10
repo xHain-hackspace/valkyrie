@@ -1,7 +1,7 @@
 defmodule Valkyrie.Members.Member do
   use Ash.Resource,
     domain: Valkyrie.Members,
-    extensions: [AshPaperTrail.Resource],
+    extensions: [AshPaperTrail.Resource, AshArchival.Resource],
     data_layer: AshSqlite.DataLayer
 
   paper_trail do
@@ -10,7 +10,11 @@ defmodule Valkyrie.Members.Member do
     store_action_name? true
     belongs_to_actor :user, destination: Valkyrie.Accounts.User, public?: true
     on_actions [:create_manual_entry, :update_manual_entry, :change_keyholder_status]
-    create_version_on_destroy? false
+    create_version_on_destroy? true
+  end
+
+  archive do
+    exclude_read_actions(:read_for_audit_log)
   end
 
   sqlite do
@@ -20,6 +24,10 @@ defmodule Valkyrie.Members.Member do
 
   actions do
     defaults [:read, :destroy]
+
+    read :read_for_audit_log do
+      description "Read a member for the audit log"
+    end
 
     create :create do
       primary? true
@@ -124,7 +132,7 @@ defmodule Valkyrie.Members.Member do
   end
 
   identities do
-    identity :unique_username, [:username]
+    identity :unique_username, [:username], where: expr(is_nil(archived_at))
   end
 
   def ssh_public_key_valid?(nil), do: false
