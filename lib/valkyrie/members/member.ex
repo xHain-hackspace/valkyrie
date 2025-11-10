@@ -58,7 +58,11 @@ defmodule Valkyrie.Members.Member do
       upsert_identity :unique_username
 
       change fn changeset, _ ->
-        Ash.Changeset.change_attributes(changeset, %{is_manual_entry: true, is_active: true})
+        Ash.Changeset.change_attributes(changeset, %{
+          is_manual_entry: true,
+          is_active: true,
+          archived_at: nil
+        })
       end
     end
 
