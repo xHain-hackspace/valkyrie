@@ -53,7 +53,7 @@ defmodule ValkyrieWeb.Layouts do
       </div>
     </main>
 
-    <ValkyrieWeb.Components.Alert.flash_group position="top_left" flash={@flash} />
+    <ValkyrieWeb.Components.Alert.flash_group position="top_right" flash={@flash} />
     """
   end
 end
