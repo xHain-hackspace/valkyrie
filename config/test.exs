@@ -1,5 +1,8 @@
 import Config
 config :valkyrie, token_signing_secret: "h+Y51jGCFZWAceJy8mv7XXKJXQOBRKki"
+
+# Dummy values for environment variables required by runtime.exs in all envs
+System.put_env("AUTHENTIK_MEMBER_GROUP_UUID", "00000000-0000-0000-0000-000000000000")
 config :bcrypt_elixir, log_rounds: 1
 config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
