@@ -15,8 +15,7 @@ defmodule Valkyrie.Application do
       {DNSCluster, query: Application.get_env(:valkyrie, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Valkyrie.PubSub},
       Valkyrie.Members.SyncState,
-      # Start a worker by calling: Valkyrie.Worker.start_link(arg)
-      # {Valkyrie.Worker, arg},
+      Valkyrie.Members.SyncScheduler,
       # Start to serve requests, typically the last entry
       ValkyrieWeb.Endpoint,
       {AshAuthentication.Supervisor, [otp_app: :valkyrie]}

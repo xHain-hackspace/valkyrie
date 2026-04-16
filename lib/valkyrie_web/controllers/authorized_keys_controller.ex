@@ -29,6 +29,7 @@ defmodule ValkyrieWeb.AuthorizedKeysController do
   defp build_authorized_keys_content() do
     Ash.read!(Member)
     |> Enum.sort_by(fn member -> member.tree_name end)
+    |> Enum.filter(fn %Member{} = m -> m.is_active end)
     |> Enum.filter(fn %Member{} = m -> m.has_key end)
     |> Enum.filter(fn %Member{} = m -> Member.ssh_public_key_valid?(m.ssh_public_key) end)
     |> Enum.map(&get_ssh_pub_key_for_list/1)

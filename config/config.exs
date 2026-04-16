@@ -54,6 +54,10 @@ config :valkyrie,
   generators: [timestamp_type: :utc_datetime],
   ash_domains: [Valkyrie.Accounts, Valkyrie.Members]
 
+config :valkyrie, Valkyrie.Members.SyncScheduler,
+  interval_ms: :timer.minutes(15),
+  initial_delay_ms: :timer.seconds(30)
+
 # Configures the endpoint
 config :valkyrie, ValkyrieWeb.Endpoint,
   url: [host: "localhost"],

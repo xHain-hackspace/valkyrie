@@ -44,6 +44,10 @@ defmodule Valkyrie.Members.Member do
 
       upsert? true
       upsert_identity :unique_username
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :archived_at, nil)
+      end
     end
 
     create :create_manual_entry do

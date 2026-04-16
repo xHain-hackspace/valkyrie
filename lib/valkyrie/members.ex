@@ -8,7 +8,6 @@ defmodule Valkyrie.Members do
   alias Valkyrie.Members.Member
   alias Valkyrie.Members.SyncState
 
-  @member_group_uuid "005b0c1c-c1bf-4a57-99b2-66cf04f94cda"
   @sync_progress_topic "sync_members:progress"
 
   admin do
@@ -50,17 +49,24 @@ defmodule Valkyrie.Members do
   end
 
   def update_members_from_xhain_account_system do
-    perform_sync()
+    case SyncState.start_sync() do
+      :ok -> perform_sync()
+      {:error, :already_syncing} -> {:error, :already_syncing}
+    end
   end
 
   def update_members_from_xhain_account_system_async() do
-    case SyncState.start_sync() do
-      :ok ->
-        task = Task.async(fn -> perform_sync() end)
-        {:ok, task}
+    if SyncState.is_syncing?() do
+      {:error, :already_syncing}
+    else
+      Task.start(fn ->
+        case SyncState.start_sync() do
+          :ok -> perform_sync()
+          {:error, :already_syncing} -> :ok
+        end
+      end)
 
-      {:error, :already_syncing} ->
-        {:error, :already_syncing}
+      :ok
     end
   end
 
@@ -160,7 +166,7 @@ defmodule Valkyrie.Members do
       xhain_account_id: xhain_account.xhain_account_id,
       ssh_public_key: xhain_account.ssh_public_key,
       tree_name: xhain_account.tree_name,
-      is_active: is_member_in_group(xhain_account.groups, @member_group_uuid)
+      is_active: is_member_in_group(xhain_account.groups, member_group_uuid())
     }
   end
 
@@ -190,5 +196,9 @@ defmodule Valkyrie.Members do
 
   defp is_member_in_group(groups, group_uuid) do
     Enum.any?(groups, fn group -> group == group_uuid end)
+  end
+
+  defp member_group_uuid() do
+    Application.fetch_env!(:valkyrie, :authentik_member_group_uuid)
   end
 end

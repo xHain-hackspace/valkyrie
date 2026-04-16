@@ -39,18 +39,6 @@ defmodule ValkyrieWeb.MemberLive.Index do
   end
 
   @impl true
-  def handle_info({ref, _result}, socket) when is_reference(ref) do
-    # Ignore Task completion messages - we handle progress via PubSub
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
-    # Ignore Task termination messages - we handle completion via PubSub
-    {:noreply, socket}
-  end
-
-  @impl true
   def handle_info({:sync_progress, progress}, socket) do
     socket =
       socket
@@ -133,7 +121,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
     else
       # Start async sync
       case Members.update_members_from_xhain_account_system_async() do
-        {:ok, _task} ->
+        :ok ->
           {:noreply,
            socket
            |> assign(:sync_progress, %{

@@ -24,39 +24,35 @@ end
 config :valkyrie,
   xhain_account_client_secret:
     System.get_env("XHAIN_ACCOUNT_CLIENT_SECRET") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_SECRET`!")
-
-config :valkyrie,
+      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_SECRET`!"),
   xhain_account_client_id:
     System.get_env("XHAIN_ACCOUNT_CLIENT_ID") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_ID`!")
-
-config :valkyrie,
+      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_ID`!"),
   xhain_account_base_url:
     System.get_env("XHAIN_ACCOUNT_BASE_URL") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_BASE_URL`!")
-
-config :valkyrie,
+      raise("Missing environment variable `XHAIN_ACCOUNT_BASE_URL`!"),
   xhain_account_redirect_uri:
     System.get_env("XHAIN_ACCOUNT_REDIRECT_URI") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_REDIRECT_URI`!")
-
-config :valkyrie,
+      raise("Missing environment variable `XHAIN_ACCOUNT_REDIRECT_URI`!"),
   authentik_token:
     System.get_env("AUTHENTIK_TOKEN") ||
-      raise("Missing environment variable `AUTHENTIK_TOKEN`!")
-
-config :valkyrie,
+      raise("Missing environment variable `AUTHENTIK_TOKEN`!"),
   authentik_url:
     System.get_env("AUTHENTIK_URL") ||
-      raise("Missing environment variable `AUTHENTIK_URL`!")
-
-config :valkyrie,
+      raise("Missing environment variable `AUTHENTIK_URL`!"),
+  authentik_member_group_uuid:
+    System.get_env("AUTHENTIK_MEMBER_GROUP_UUID") ||
+      raise("Missing environment variable `AUTHENTIK_MEMBER_GROUP_UUID`!"),
   xdoor_signing_key:
     System.get_env("XDOOR_SIGNING_KEY") ||
       raise("Missing environment variable `XDOOR_SIGNING_KEY`!")
 
 if config_env() == :prod do
+  config :valkyrie, Valkyrie.Members.SyncScheduler,
+    interval_ms:
+      :timer.minutes(String.to_integer(System.get_env("SYNC_INTERVAL_MINUTES") || "15")),
+    initial_delay_ms: :timer.seconds(30)
+
   database_path =
     System.get_env("DATABASE_PATH") ||
       raise """
