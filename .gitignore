@@ -41,3 +41,9 @@ npm-debug.log
 
 # Environment variables
 .envrc
+
+.env
+*_names.txt
+*.dump
+*.pem
+**/default_data.ex
