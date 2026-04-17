@@ -1,8 +1,7 @@
-name: Publish
+name: CI
 
 on:
-  push:
-    tags: [ "v*.*.*" ]
+  pull_request:
     branches:
       - "main"
 
@@ -19,5 +18,5 @@ jobs:
     with:
       elixir-version: "1.18.4"
       otp-version: "28.0.1"
-      push: true
+      push: false
     secrets: inherit
