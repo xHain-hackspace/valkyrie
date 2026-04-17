@@ -12,6 +12,10 @@ on:
       push:
         required: true
         type: boolean
+      stable:
+        required: false
+        default: false
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
@@ -49,7 +53,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=stable,enable=${{ inputs.stable }}
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
