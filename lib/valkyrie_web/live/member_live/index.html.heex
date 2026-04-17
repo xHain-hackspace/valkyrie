@@ -24,6 +24,13 @@
                 class="flex flex-col gap-2 items-center"
               />
               <.toggle_field
+                field={@filters[:only_inactive_members]}
+                checked={toggle_check(:only_inactive_members, to_form(@filters))}
+                label="Only Non-Members"
+                name="only_inactive_members"
+                class="flex flex-col gap-2 items-center"
+              />
+              <.toggle_field
                 field={@filters[:only_keyholders]}
                 checked={toggle_check(:only_keyholders, to_form(@filters))}
                 label="Only Keyholders"

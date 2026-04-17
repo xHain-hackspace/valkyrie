@@ -28,6 +28,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
      |> assign(:filters, %{
        "only_manual_entries" => false,
        "only_active_members" => true,
+       "only_inactive_members" => false,
        "only_keyholders" => false
      })
      |> update_member_list()}
@@ -77,7 +78,21 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   @impl true
   def handle_event("filter_changed", form, socket) do
-    {:noreply, socket |> assign(:filters, filters_from_form(form)) |> update_member_list()}
+    new_filters = filters_from_form(form)
+
+    filters =
+      cond do
+        new_filters["only_inactive_members"] && !socket.assigns.filters["only_inactive_members"] ->
+          %{new_filters | "only_active_members" => false}
+
+        new_filters["only_active_members"] && !socket.assigns.filters["only_active_members"] ->
+          %{new_filters | "only_inactive_members" => false}
+
+        true ->
+          new_filters
+      end
+
+    {:noreply, socket |> assign(:filters, filters) |> update_member_list()}
   end
 
   @impl true
@@ -150,6 +165,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
       |> Ash.Query.sort(:username)
       |> maybe_add_search_filter(socket.assigns.search_query)
       |> maybe_filter_only_active_members(socket)
+      |> maybe_filter_only_inactive_members(socket)
       |> maybe_filter_only_manual_entries(socket)
       |> maybe_filter_only_keyholders(socket)
 
@@ -181,6 +197,14 @@ defmodule ValkyrieWeb.MemberLive.Index do
   defp maybe_filter_only_active_members(query, socket) do
     if socket.assigns.filters["only_active_members"] == true do
       query |> Ash.Query.filter(is_active: true)
+    else
+      query
+    end
+  end
+
+  defp maybe_filter_only_inactive_members(query, socket) do
+    if socket.assigns.filters["only_inactive_members"] == true do
+      query |> Ash.Query.filter(is_active: false)
     else
       query
     end
