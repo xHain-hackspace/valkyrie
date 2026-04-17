@@ -29,6 +29,7 @@ defmodule Valkyrie.Members do
       define :create_member, action: :create
       define :create_manual_entry, action: :create_manual_entry
       define :delete_member, action: :destroy
+      define :sync_update, action: :sync_update
       define :update_manual_entry, action: :update_manual_entry
       define :read_for_audit_log, action: :read_for_audit_log
 
@@ -117,14 +118,50 @@ defmodule Valkyrie.Members do
     |> Enum.filter(fn member -> not member_exists_in_list?(member, valid_users) end)
     |> Enum.each(fn member ->
       Logger.info("Removing member #{inspect(member)}")
-      Ash.destroy!(member, action: :destroy)
+      Ash.destroy!(member, action: :destroy, actor: get_authentik_actor())
     end)
   end
 
   defp create_members(valid_users) do
-    Enum.each(valid_users, fn member ->
-      Ash.create!(Member, member, action: :create)
+    authentik_actor = get_authentik_actor()
+
+    Enum.each(valid_users, fn member_info ->
+      case get_member_by_username(member_info.username) do
+        {:ok, nil} ->
+          Ash.create!(Member, member_info, action: :create)
+
+        {:ok, existing} ->
+          if member_changed?(existing, member_info) do
+            apply_sync_update!(existing, member_info, authentik_actor)
+          end
+
+        {:error, reason} ->
+          Logger.warning("Failed to fetch member #{member_info.username}: #{inspect(reason)}")
+          Ash.create!(Member, member_info, action: :create)
+      end
     end)
+  end
+
+  defp member_changed?(existing, member_info) do
+    sync_fields = [:username, :xhain_account_id, :ssh_public_key, :tree_name, :is_active]
+
+    Enum.any?(sync_fields, fn field ->
+      Map.get(existing, field) != Map.get(member_info, field)
+    end)
+  end
+
+  defp apply_sync_update!(member, member_info, actor) do
+    Ash.update!(member, member_info, action: :sync_update, actor: actor)
+  end
+
+  defp get_authentik_actor() do
+    case Ash.get(Valkyrie.Accounts.User, %{username: "authentik"},
+           domain: Valkyrie.Accounts,
+           authorize?: false
+         ) do
+      {:ok, user} -> user
+      _ -> nil
+    end
   end
 
   defp broadcast_progress(status, users_count) do

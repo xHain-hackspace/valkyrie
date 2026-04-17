@@ -9,3 +9,10 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+# Ensure the "authentik" system user exists — used as the actor for sync-driven audit log entries.
+Valkyrie.Repo.insert!(
+  %Valkyrie.Accounts.User{id: Ecto.UUID.generate(), username: "authentik"},
+  on_conflict: :nothing,
+  conflict_target: [:username]
+)

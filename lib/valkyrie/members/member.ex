@@ -9,7 +9,8 @@ defmodule Valkyrie.Members.Member do
     change_tracking_mode :full_diff
     store_action_name? true
     belongs_to_actor :user, destination: Valkyrie.Accounts.User, public?: true
-    on_actions [:create_manual_entry, :update_manual_entry, :change_keyholder_status]
+    on_actions [:create_manual_entry, :update_manual_entry, :change_keyholder_status, :sync_update]
+    ignore_actions [:create]
     create_version_on_destroy? true
   end
 
@@ -68,6 +69,10 @@ defmodule Valkyrie.Members.Member do
           archived_at: nil
         })
       end
+    end
+
+    update :sync_update do
+      accept [:username, :xhain_account_id, :ssh_public_key, :tree_name, :is_active]
     end
 
     update :update_manual_entry do
