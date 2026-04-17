@@ -21,15 +21,22 @@ defmodule Valkyrie.Authentik do
     Application.fetch_env!(:valkyrie, :authentik_url)
   end
 
+  defp req_options do
+    Application.get_env(:valkyrie, :authentik_req_options, [])
+  end
+
   defp do_get_all_users(page, acc, progress_callback) do
     Logger.debug("Fetching users from page #{page}")
 
     url = "#{base_url()}/api/v3/core/users/"
 
-    case Req.get(url,
-           auth: {:bearer, bearer_token()},
-           params: [page: page, page_size: @page_size, is_active: true],
-           receive_timeout: 20_000
+    case Req.get(
+           url,
+           [
+             auth: {:bearer, bearer_token()},
+             params: [page: page, page_size: @page_size, is_active: true],
+             receive_timeout: 20_000
+           ] ++ req_options()
          ) do
       {:ok, %Req.Response{status: 200, body: %{"results" => results, "pagination" => pagination}}} ->
         new_acc = Enum.concat(acc, results)

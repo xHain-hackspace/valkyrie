@@ -28,6 +28,7 @@ defmodule ValkyrieWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import ValkyrieWeb.ConnCase
+      import Valkyrie.MemberHelpers
     end
   end
 

@@ -24,6 +24,7 @@ defmodule Valkyrie.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import Valkyrie.DataCase
+      import Valkyrie.MemberHelpers
     end
   end
 

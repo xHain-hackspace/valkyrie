@@ -59,5 +59,52 @@ defmodule ValkyrieWeb.AuthorizedKeysControllerTest do
 
       refute response(conn, 200) =~ "ulme"
     end
+
+    test "excludes archived members", %{conn: conn} do
+      member = create_member(%{tree_name: "kiefer"})
+      Ash.destroy!(member)
+
+      conn = get(conn, ~p"/authorized_keys")
+
+      refute response(conn, 200) =~ "kiefer"
+    end
+
+    test "sorts output alphabetically by tree_name", %{conn: conn} do
+      create_member(%{username: "zorro", tree_name: "zeder"})
+      create_member(%{username: "alice", xhain_account_id: 2, tree_name: "ahorn"})
+
+      body = conn |> get(~p"/authorized_keys") |> response(200)
+
+      ahorn_pos = :binary.match(body, "ahorn") |> elem(0)
+      zeder_pos = :binary.match(body, "zeder") |> elem(0)
+
+      assert ahorn_pos < zeder_pos
+    end
+
+    test "formats each line as '<protocol> <key> <tree_name>'", %{conn: conn} do
+      create_member(%{tree_name: "eiche"})
+
+      body = conn |> get(~p"/authorized_keys") |> response(200)
+
+      assert body =~ ~r/^ssh-ed25519 [A-Za-z0-9+\/]+ eiche$/m
+    end
+  end
+
+  describe "GET /authorized_keys.sig" do
+    test "returns 200 with a non-empty signature body", %{conn: conn} do
+      create_member(%{tree_name: "birke"})
+
+      conn = get(conn, ~p"/authorized_keys.sig")
+
+      body = response(conn, 200)
+      assert byte_size(body) > 0
+    end
+
+    test "returns application/pgp-signature content type", %{conn: conn} do
+      conn = get(conn, ~p"/authorized_keys.sig")
+
+      response(conn, 200)
+      assert get_resp_header(conn, "content-type") == ["application/pgp-signature"]
+    end
   end
 end

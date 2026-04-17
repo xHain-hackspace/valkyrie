@@ -1,8 +1,15 @@
 import Config
-config :valkyrie, token_signing_secret: "h+Y51jGCFZWAceJy8mv7XXKJXQOBRKki"
+config :valkyrie,
+  token_signing_secret: "h+Y51jGCFZWAceJy8mv7XXKJXQOBRKki",
+  disable_auth: true
+
+# Wire Req.Test as the HTTP adapter for Authentik calls in tests
+config :valkyrie, authentik_req_options: [plug: {Req.Test, :valkyrie_authentik}, retry: false]
 
 # Dummy values for environment variables required by runtime.exs in all envs
 System.put_env("AUTHENTIK_MEMBER_GROUP_UUID", "00000000-0000-0000-0000-000000000000")
+System.put_env("AUTHENTIK_TOKEN", "test-token")
+System.put_env("AUTHENTIK_URL", "http://authentik.test")
 config :bcrypt_elixir, log_rounds: 1
 config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
