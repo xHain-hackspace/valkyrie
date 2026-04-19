@@ -45,7 +45,9 @@ defmodule ValkyrieWeb.AuditLive.Index do
               <%= if not Map.has_key?(value, "unchanged") do %>
                 <div class="flex flex-col">
                   <span class="font-light text-gray-500 break-all">
-                    changed {key} from {Map.get(value, "from", "-")} to {Map.get(value, "to", "-")}
+                    <% or_empty = fn v -> if v in [nil, ""], do: "<empty>", else: v end %>
+                    <% from = value |> Map.get("from") |> or_empty.() %>
+                    <% to = value |> Map.get("to") |> or_empty.() %> changed {key} from {from} to {to}
                   </span>
                 </div>
               <% end %>
