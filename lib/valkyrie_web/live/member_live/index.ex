@@ -237,16 +237,19 @@ defmodule ValkyrieWeb.MemberLive.Index do
   end
 
   defp add_authorized_keys_status(status, member) do
+    synced_msg = "In sync with xDoor."
+    warning_msg = "xDoor has not polled the current state!"
+
     case Ash.get(LastAccess, %{resource_name: "authorized_keys"}) do
       {:ok, %LastAccess{last_access: last_access}} ->
         if DateTime.diff(last_access, member.updated_at, :second) > 0 do
-          [{:synced, "State synced to door."} | status]
+          [{:synced, synced_msg} | status]
         else
-          [{:warning, "State not yet synced to door."} | status]
+          [{:warning, warning_msg} | status]
         end
 
       _ ->
-        [{:warning, "State not yet synced to door."} | status]
+        [{:warning, warning_msg} | status]
     end
   end
 

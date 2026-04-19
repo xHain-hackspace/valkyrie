@@ -6,7 +6,14 @@ defmodule ValkyrieWeb.AuthorizedKeysController do
   Serves the authorized_keys file with SSH public keys from all members.
   """
   def authorized_keys(conn, _params) do
-    Valkyrie.Members.access(%{resource_name: "authorized_keys"})
+    # track access only if xdoor header is set
+    case(get_req_header(conn, "x-door")) do
+      [_] ->
+        Valkyrie.Members.access(%{resource_name: "authorized_keys"})
+
+      [] ->
+        nil
+    end
 
     conn
     |> put_resp_header("content-type", "application/octet-stream")
