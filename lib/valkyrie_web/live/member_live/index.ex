@@ -170,7 +170,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
       |> maybe_filter_only_keyholders(socket)
 
     case Members.list_members(
-           page: [limit: 20, offset: offset, count: true],
+           page: [limit: 50, offset: offset, count: true],
            actor: socket.assigns.current_user,
            query: query
          ) do

@@ -9,7 +9,14 @@ defmodule Valkyrie.Members.Member do
     change_tracking_mode :full_diff
     store_action_name? true
     belongs_to_actor :user, destination: Valkyrie.Accounts.User, public?: true
-    on_actions [:create_manual_entry, :update_manual_entry, :change_keyholder_status, :sync_update]
+
+    on_actions [
+      :create_manual_entry,
+      :update_manual_entry,
+      :change_keyholder_status,
+      :sync_update
+    ]
+
     ignore_actions [:create]
     create_version_on_destroy? true
   end
@@ -40,7 +47,8 @@ defmodule Valkyrie.Members.Member do
         :ssh_public_key,
         :tree_name,
         :is_active,
-        :is_manual_entry
+        :is_manual_entry,
+        :matrix_contact
       ]
 
       upsert? true
@@ -56,7 +64,8 @@ defmodule Valkyrie.Members.Member do
         :username,
         :tree_name,
         :ssh_public_key,
-        :has_key
+        :has_key,
+        :matrix_contact
       ]
 
       upsert? true
@@ -72,7 +81,14 @@ defmodule Valkyrie.Members.Member do
     end
 
     update :sync_update do
-      accept [:username, :xhain_account_id, :ssh_public_key, :tree_name, :is_active]
+      accept [
+        :username,
+        :xhain_account_id,
+        :ssh_public_key,
+        :tree_name,
+        :is_active,
+        :matrix_contact
+      ]
     end
 
     update :update_manual_entry do
@@ -80,7 +96,8 @@ defmodule Valkyrie.Members.Member do
         :username,
         :tree_name,
         :ssh_public_key,
-        :has_key
+        :has_key,
+        :matrix_contact
       ]
     end
 
@@ -141,6 +158,12 @@ defmodule Valkyrie.Members.Member do
       allow_nil? false
       public? true
       default false
+    end
+
+    attribute :matrix_contact, :string do
+      description "Matrix account. Either the default account or an external matrix account."
+      allow_nil? true
+      public? true
     end
   end
 

@@ -13,12 +13,18 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
   describe "member list" do
     test "renders members on mount", %{conn: conn} do
-      member_fixture(%{username: "alice", tree_name: "aloe", is_active: true})
+      member_fixture(%{
+        username: "alice",
+        tree_name: "aloe",
+        is_active: true,
+        matrix_contact: "@alice:x-hain.de"
+      })
 
       {:ok, _view, html} = live(conn, ~p"/members")
 
       assert html =~ "alice"
-      assert html =~ "aloe"
+      assert html =~ "@alice:x-hain.de"
+      assert not (html =~ "aloe")
     end
 
     test "only active members are shown by default", %{conn: conn} do
@@ -47,7 +53,12 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
       keyholder = member_fixture(%{username: "keyholder", has_key: true, is_active: true})
 
       no_key =
-        member_fixture(%{username: "no-key", xhain_account_id: 2, has_key: false, is_active: true})
+        member_fixture(%{
+          username: "no-key",
+          xhain_account_id: 2,
+          has_key: false,
+          is_active: true
+        })
 
       {:ok, view, _html} = live(conn, ~p"/members")
 
@@ -64,7 +75,9 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
     test "only inactive members filter shows inactive members", %{conn: conn} do
       active = member_fixture(%{username: "active-user", is_active: true})
-      inactive = member_fixture(%{username: "inactive-user", xhain_account_id: 2, is_active: false})
+
+      inactive =
+        member_fixture(%{username: "inactive-user", xhain_account_id: 2, is_active: false})
 
       {:ok, view, _html} = live(conn, ~p"/members")
 

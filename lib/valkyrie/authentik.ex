@@ -7,7 +7,8 @@ defmodule Valkyrie.Authentik do
       :xhain_account_id,
       :ssh_public_key,
       :tree_name,
-      :groups
+      :groups,
+      :external_matrix_account
     ]
   end
 
@@ -92,7 +93,9 @@ defmodule Valkyrie.Authentik do
              xhain_account_id: Map.get(user, "pk"),
              ssh_public_key: Map.get(user, "attributes", %{}) |> Map.get("ssh-key", ""),
              tree_name: Map.get(user, "attributes", %{}) |> Map.get("tree"),
-             groups: Map.get(user, "groups", [])
+             groups: Map.get(user, "groups", []),
+             external_matrix_account:
+               Map.get(user, "attributes", %{}) |> Map.get("external-matrix-account", "")
            }
          end)}
 

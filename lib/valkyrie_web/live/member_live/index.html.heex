@@ -107,17 +107,29 @@
       rows={@streams.members}
       thead_class="text-lg font-extrabold"
       rounded="large"
+      table_fixed={true}
+      row_class="h-15"
+      action_class="w-[15%]"
     >
-      <:col :let={{_id, member}} label="Username">{member.username}</:col>
-      <:col :let={{_id, member}} label="Tree">{member.tree_name}</:col>
+      <:col :let={{_id, member}} label="Username" label_class="w-[15%]">{member.username}</:col>
+      <%!-- <:col :let={{_id, member}} label="Tree">{member.tree_name}</:col> --%>
+      <:col :let={{_id, member}} label="Matrix contact" label_class="w-[15%]">
+        <.tooltip text={"https://matrix.to/#/#{member.matrix_contact}"}>
+          <:trigger>
+            <.link href={"https://matrix.to/#/#{member.matrix_contact}"}>
+              {member.matrix_contact}
+            </.link>
+          </:trigger>
+        </.tooltip>
+      </:col>
 
-      <:col :let={{_id, member}} label="SSH Public Key">
+      <:col :let={{_id, member}} label="SSH Public Key" label_class="w-[40%]">
         <%= if not is_nil(member.ssh_public_key) and member.ssh_public_key != "" do %>
           <.tooltip text={member.ssh_public_key}>
             <:trigger>
               <span class="font-light break-all">
-                {String.slice(member.ssh_public_key, 0, 11) <>
-                  "..." <> String.slice(member.ssh_public_key, -15, 15)}
+                {String.slice(member.ssh_public_key, 0, 20) <>
+                  "..." <> String.slice(member.ssh_public_key, -20, 20)}
               </span>
             </:trigger>
           </.tooltip>
@@ -126,7 +138,7 @@
         <% end %>
       </:col>
 
-      <:col :let={{_id, member}} label="Keyholder">
+      <:col :let={{_id, member}} label_class="w-[10%]" label="Keyholder">
         <.toggle_field
           id={"toggle-has-key-" <> member.id}
           name="has_key"
@@ -139,7 +151,7 @@
         />
       </:col>
 
-      <:col :let={{_id, member}} label="Info">
+      <:col :let={{_id, member}} label="Info" label_class="w-[5%]">
         <div class="flex flex-row gap-2 items-center">
           <%= for {type, message} <- member._status do %>
             <%= case type do %>

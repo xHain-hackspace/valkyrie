@@ -120,6 +120,8 @@ defmodule ValkyrieWeb.Components.Table do
   attr :rows, :list, default: []
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
+  attr :row_class, :string, default: nil, doc: "Custom CSS class for each row"
+  attr :action_class, :string, default: nil, doc: "Custom CSS class for the action column"
 
   attr :row_item, :any,
     default: &Function.identity/1,
@@ -184,7 +186,7 @@ defmodule ValkyrieWeb.Components.Table do
 
               <.tr :if={@col}>
                 <.th :for={col <- @col} class={["font-normal", col[:label_class]]}>{col[:label]}</.th>
-                <.th :if={@action != []} class="relative">
+                <.th :if={@action != []} class={["relative", @action_class]}>
                   <span class="sr-only">{gettext("Actions")}</span>
                 </.th>
               </.tr>
@@ -198,7 +200,7 @@ defmodule ValkyrieWeb.Components.Table do
             >
               {render_slot(@inner_block)}
 
-              <.tr :for={row <- @rows} :if={@rows != []} id={@row_id && @row_id.(row)}>
+              <.tr :for={row <- @rows} :if={@rows != []} id={@row_id && @row_id.(row)} class={@row_class}>
                 <.td
                   :for={{col, i} <- Enum.with_index(@col)}
                   phx-click={@row_click && @row_click.(row)}
@@ -212,8 +214,8 @@ defmodule ValkyrieWeb.Components.Table do
                   </div>
                 </.td>
 
-                <.td :if={@action} class="relative w-14 p-0">
-                  <div class="relative whitespace-nowrap py-4 text-right text-sm font-medium">
+                <.td :if={@action} class={"relative p-0 #{@action_class || "w-14"}"}>
+                  <div class="relative whitespace-nowrap h-full flex items-center justify-end text-sm font-medium">
                     <span class="absolute -inset-y-px -right-4 left-0" />
                     <span :for={action <- @action} class="relative ml-4 font-semibold leading-6">
                       {render_slot(action, @row_item.(row))}

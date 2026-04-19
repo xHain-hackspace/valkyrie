@@ -4,6 +4,7 @@ defmodule Valkyrie.Members do
   require Logger
   require Ash.Query
 
+  alias Valkyrie.Authentik.XHainAccount
   alias Valkyrie.Authentik
   alias Valkyrie.Members.Member
   alias Valkyrie.Members.SyncState
@@ -143,7 +144,14 @@ defmodule Valkyrie.Members do
   end
 
   defp member_changed?(existing, member_info) do
-    sync_fields = [:username, :xhain_account_id, :ssh_public_key, :tree_name, :is_active]
+    sync_fields = [
+      :username,
+      :xhain_account_id,
+      :ssh_public_key,
+      :tree_name,
+      :is_active,
+      :matrix_contact
+    ]
 
     Enum.any?(sync_fields, fn field ->
       Map.get(existing, field) != Map.get(member_info, field)
@@ -203,7 +211,8 @@ defmodule Valkyrie.Members do
       xhain_account_id: xhain_account.xhain_account_id,
       ssh_public_key: xhain_account.ssh_public_key,
       tree_name: xhain_account.tree_name,
-      is_active: is_member_in_group(xhain_account.groups, member_group_uuid())
+      is_active: is_member_in_group(xhain_account.groups, member_group_uuid()),
+      matrix_contact: get_matrix_contact(xhain_account)
     }
   end
 
@@ -237,5 +246,18 @@ defmodule Valkyrie.Members do
 
   defp member_group_uuid() do
     Application.fetch_env!(:valkyrie, :authentik_member_group_uuid)
+  end
+
+  @default_matrix_server "x-hain.de"
+
+  defp get_matrix_contact(%XHainAccount{} = xhain_account) do
+    case is_nil(xhain_account.external_matrix_account) or
+           xhain_account.external_matrix_account == "" do
+      true ->
+        "@#{xhain_account.username}:#{@default_matrix_server}"
+
+      _ ->
+        xhain_account.external_matrix_account
+    end
   end
 end
