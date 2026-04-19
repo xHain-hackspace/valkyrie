@@ -78,7 +78,7 @@ defmodule ValkyrieWeb.Components.Tooltip do
     default: false,
     doc: "Whether tooltip is triggered by click instead of hover"
 
-  attr :show_delay, :integer, default: 0, doc: "Delay before showing (ms)"
+  attr :show_delay, :integer, default: 200, doc: "Delay before showing (ms)"
   attr :hide_delay, :integer, default: 400, doc: "Delay before hiding (ms)"
   attr :inline, :boolean, default: false, doc: "Whether tooltip should display inline"
 
