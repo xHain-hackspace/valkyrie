@@ -77,6 +77,10 @@ defmodule ValkyrieWeb.Router do
   #   pipe_through :api
   # end
 
+  scope "/" do
+    get "/metrics", ValkyrieWeb.Plugs.PrometheusMetrics, []
+  end
+
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:valkyrie, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put

@@ -74,6 +74,13 @@ defmodule Valkyrie.Members do
   end
 
   defp perform_sync() do
+    :telemetry.span([:valkyrie, :members, :sync], %{}, fn ->
+      result = do_perform_sync()
+      {result, %{status: result}}
+    end)
+  end
+
+  defp do_perform_sync() do
     try do
       progress_callback = create_progress_callback()
 
@@ -84,14 +91,16 @@ defmodule Valkyrie.Members do
           remove_obsolete_members(valid_users)
           create_members(valid_users)
           broadcast_progress(:completed, length(valid_users))
+          :ok
 
         {:error, reason} ->
           handle_sync_error(reason)
+          :error
       end
     rescue
       e ->
         handle_sync_error(Exception.message(e))
-        raise e
+        reraise e, __STACKTRACE__
     after
       SyncState.finish_sync()
     end
