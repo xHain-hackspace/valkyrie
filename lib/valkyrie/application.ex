@@ -7,6 +7,8 @@ defmodule Valkyrie.Application do
 
   @impl true
   def start(_type, _args) do
+    Valkyrie.MailerTelemetry.attach()
+
     children = [
       ValkyrieWeb.Telemetry,
       Valkyrie.Repo,

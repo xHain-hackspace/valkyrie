@@ -48,7 +48,8 @@ defmodule Valkyrie.Members.Member do
         :tree_name,
         :is_active,
         :is_manual_entry,
-        :matrix_contact
+        :matrix_contact,
+        :email
       ]
 
       upsert? true
@@ -87,7 +88,8 @@ defmodule Valkyrie.Members.Member do
         :ssh_public_key,
         :tree_name,
         :is_active,
-        :matrix_contact
+        :matrix_contact,
+        :email
       ]
     end
 
@@ -162,6 +164,12 @@ defmodule Valkyrie.Members.Member do
 
     attribute :matrix_contact, :string do
       description "Matrix account. Either the default account or an external matrix account."
+      allow_nil? true
+      public? true
+    end
+
+    attribute :email, :string do
+      description "The email address of the member, used for notifications."
       allow_nil? true
       public? true
     end

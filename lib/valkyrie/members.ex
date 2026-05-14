@@ -7,6 +7,7 @@ defmodule Valkyrie.Members do
   alias Valkyrie.Authentik.XHainAccount
   alias Valkyrie.Authentik
   alias Valkyrie.Members.Member
+  alias Valkyrie.Members.Notifications
   alias Valkyrie.Members.SyncState
 
   @sync_progress_topic "sync_members:progress"
@@ -132,8 +133,16 @@ defmodule Valkyrie.Members do
           Ash.create!(Member, member_info, action: :create)
 
         {:ok, existing} ->
-          if member_changed?(existing, member_info) do
-            apply_sync_update!(existing, member_info, authentik_actor)
+          if not is_same?(existing, member_info) do
+            updated = apply_sync_update!(existing, member_info, authentik_actor)
+
+            if ssh_key_changed?(existing, member_info) do
+              Logger.info(
+                "SSH key changed for member #{updated.username} sending notification email to #{updated.email}"
+              )
+
+              Notifications.notify_ssh_key_changed(updated)
+            end
           end
 
         {:error, reason} ->
@@ -143,19 +152,25 @@ defmodule Valkyrie.Members do
     end)
   end
 
-  defp member_changed?(existing, member_info) do
+  defp is_same?(a_member, b_member) do
     sync_fields = [
       :username,
       :xhain_account_id,
       :ssh_public_key,
       :tree_name,
       :is_active,
-      :matrix_contact
+      :matrix_contact,
+      :email
     ]
 
-    Enum.any?(sync_fields, fn field ->
-      Map.get(existing, field) != Map.get(member_info, field)
+    Enum.all?(sync_fields, fn field ->
+      Map.get(a_member, field) == Map.get(b_member, field)
     end)
+  end
+
+  defp ssh_key_changed?(existing, member_info) do
+    member_info.ssh_public_key != nil and
+      String.trim(existing.ssh_public_key) != String.trim(member_info.ssh_public_key)
   end
 
   defp apply_sync_update!(member, member_info, actor) do
@@ -212,7 +227,8 @@ defmodule Valkyrie.Members do
       ssh_public_key: xhain_account.ssh_public_key,
       tree_name: xhain_account.tree_name,
       is_active: is_member_in_group(xhain_account.groups, member_group_uuid()),
-      matrix_contact: get_matrix_contact(xhain_account)
+      matrix_contact: get_matrix_contact(xhain_account),
+      email: xhain_account.email
     }
   end
 

@@ -47,3 +47,5 @@ npm-debug.log
 *.dump
 *.pem
 **/default_data.ex
+
+.claude/

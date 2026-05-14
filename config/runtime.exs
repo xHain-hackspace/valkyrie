@@ -22,30 +22,14 @@ end
 
 # Configure the xHain Account credentials using environment variables
 config :valkyrie,
-  xhain_account_client_secret:
-    System.get_env("XHAIN_ACCOUNT_CLIENT_SECRET") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_SECRET`!"),
-  xhain_account_client_id:
-    System.get_env("XHAIN_ACCOUNT_CLIENT_ID") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_CLIENT_ID`!"),
-  xhain_account_base_url:
-    System.get_env("XHAIN_ACCOUNT_BASE_URL") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_BASE_URL`!"),
-  xhain_account_redirect_uri:
-    System.get_env("XHAIN_ACCOUNT_REDIRECT_URI") ||
-      raise("Missing environment variable `XHAIN_ACCOUNT_REDIRECT_URI`!"),
-  authentik_token:
-    System.get_env("AUTHENTIK_TOKEN") ||
-      raise("Missing environment variable `AUTHENTIK_TOKEN`!"),
-  authentik_url:
-    System.get_env("AUTHENTIK_URL") ||
-      raise("Missing environment variable `AUTHENTIK_URL`!"),
-  authentik_member_group_uuid:
-    System.get_env("AUTHENTIK_MEMBER_GROUP_UUID") ||
-      raise("Missing environment variable `AUTHENTIK_MEMBER_GROUP_UUID`!"),
-  xdoor_signing_key:
-    System.get_env("XDOOR_SIGNING_KEY") ||
-      raise("Missing environment variable `XDOOR_SIGNING_KEY`!")
+  xhain_account_client_secret: System.fetch_env!("XHAIN_ACCOUNT_CLIENT_SECRET"),
+  xhain_account_client_id: System.fetch_env!("XHAIN_ACCOUNT_CLIENT_ID"),
+  xhain_account_base_url: System.fetch_env!("XHAIN_ACCOUNT_BASE_URL"),
+  xhain_account_redirect_uri: System.fetch_env!("XHAIN_ACCOUNT_REDIRECT_URI"),
+  authentik_token: System.fetch_env!("AUTHENTIK_TOKEN"),
+  authentik_url: System.fetch_env!("AUTHENTIK_URL"),
+  authentik_member_group_uuid: System.fetch_env!("AUTHENTIK_MEMBER_GROUP_UUID"),
+  xdoor_signing_key: System.fetch_env!("XDOOR_SIGNING_KEY")
 
 if config_env() == :prod do
   config :valkyrie, Valkyrie.Members.SyncScheduler,
@@ -94,9 +78,7 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 
   config :valkyrie,
-    token_signing_secret:
-      System.get_env("TOKEN_SIGNING_SECRET") ||
-        raise("Missing environment variable `TOKEN_SIGNING_SECRET`!")
+    token_signing_secret: System.fetch_env!("TOKEN_SIGNING_SECRET")
 
   # ## SSL Support
   #
@@ -147,4 +129,13 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Req
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+  #
+  config :valkyrie, Valkyrie.Mailer,
+    adapter: Swoosh.Adapters.Mua,
+    relay: System.fetch_env!("SMTP_HOST"),
+    auth: [
+      username: System.fetch_env!("SMTP_USER"),
+      password: System.fetch_env!("SMTP_PASSWORD")
+    ],
+    port: String.to_integer(System.fetch_env!("SMTP_PORT"))
 end
