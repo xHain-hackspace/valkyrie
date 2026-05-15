@@ -84,7 +84,7 @@ defmodule Valkyrie.MixProject do
       {:mint, "~> 1.0"},
       {:ex_crypto, "~> 0.10"},
       {:mua, "~> 0.2.0"},
-      {:mail, "~> 0.3.0"},
+      {:mail, "~> 0.5.2"},
       {:hackney, "~> 1.9"}
     ]
   end
