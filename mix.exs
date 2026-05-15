@@ -46,7 +46,7 @@ defmodule Valkyrie.MixProject do
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_paper_trail, "~> 0.5"},
       {:mishka_chelekom, "~> 0.0", only: [:dev]},
-      {:live_debugger, "~> 0.4", only: [:dev]},
+      {:live_debugger, "~> 1.0", only: [:dev]},
       {:ash_admin, "~> 0.13"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:ash_authentication, "~> 4.0"},
