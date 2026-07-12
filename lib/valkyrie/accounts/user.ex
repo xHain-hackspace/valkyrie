@@ -37,7 +37,7 @@ defmodule Valkyrie.Accounts.User do
 
         registration_enabled? true
         id_token_signed_response_alg "HS256"
-        authorization_params scope: "openid profile email"
+        authorization_params scope: "openid profile email groups"
 
         client_secret Valkyrie.Secrets
       end
@@ -64,7 +64,8 @@ defmodule Valkyrie.Accounts.User do
         user_info = Ash.Changeset.get_argument(changeset, :user_info)
 
         Ash.Changeset.change_attributes(changeset, %{
-          username: Map.get(user_info, "preferred_username")
+          username: Map.get(user_info, "preferred_username"),
+          is_admin: admin?(user_info)
         })
       end
 
@@ -94,9 +95,19 @@ defmodule Valkyrie.Accounts.User do
   attributes do
     uuid_primary_key :id
     attribute :username, :string, allow_nil?: false, public?: true
+    attribute :is_admin, :boolean, allow_nil?: false, default: false, public?: false
   end
 
   identities do
     identity :username, [:username]
+  end
+
+  # Whether the OIDC `groups` claim includes the configured admin group.
+  # Missing config or claim → not an admin (fail closed).
+  defp admin?(user_info) do
+    groups = Map.get(user_info, "groups", [])
+    admin_group = Application.get_env(:valkyrie, :authentik_admin_group)
+
+    admin_group != nil and admin_group in groups
   end
 end

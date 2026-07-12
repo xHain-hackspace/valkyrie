@@ -29,6 +29,19 @@ defmodule ValkyrieWeb.LiveUserAuth do
     end
   end
 
+  def on_mount(:live_admin_required, _params, _session, socket) do
+    cond do
+      match?(%{is_admin: true}, socket.assigns[:current_user]) ->
+        {:cont, socket}
+
+      socket.assigns[:current_user] ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}
+
+      true ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/sign-in")}
+    end
+  end
+
   def on_mount(:live_no_user, _params, _session, socket) do
     if socket.assigns[:current_user] do
       {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}

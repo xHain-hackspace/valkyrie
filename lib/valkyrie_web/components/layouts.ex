@@ -5,6 +5,8 @@ defmodule ValkyrieWeb.Layouts do
   """
   use ValkyrieWeb, :html
 
+  import ValkyrieWeb.Components.UserIndicator
+
   # Embed all files in layouts/* within this module.
   # The default root.html.heex file contains the HTML
   # skeleton of your application, namely HTML headers
@@ -27,6 +29,10 @@ defmodule ValkyrieWeb.Layouts do
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
 
+  attr :current_user, :map,
+    default: nil,
+    doc: "the signed-in user, used to show admin-only navigation"
+
   attr :current_scope, :map,
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
@@ -46,6 +52,14 @@ defmodule ValkyrieWeb.Layouts do
           Audit Log
         </.link>
       </:list>
+      <:list :if={@current_user && @current_user.is_admin} icon="hero-key">
+        <.link navigate="/doors" title="Doors">
+          Doors
+        </.link>
+      </:list>
+      <:end_content>
+        <.user_indicator current_user={@current_user} />
+      </:end_content>
     </.navbar>
     <main class="px-4 py-20 sm:px-6 lg:px-8">
       <div class="mx-auto w-full space-y-4">

@@ -14,7 +14,7 @@ defmodule ValkyrieWeb.AuditLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_user={@current_user}>
       Audit Log
       <.paginated_content
         search_query={@search_query}

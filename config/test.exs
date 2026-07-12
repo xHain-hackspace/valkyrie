@@ -9,6 +9,7 @@ config :valkyrie, authentik_req_options: [plug: {Req.Test, :valkyrie_authentik},
 
 # Dummy values for environment variables required by runtime.exs in all envs
 System.put_env("AUTHENTIK_MEMBER_GROUP_UUID", "00000000-0000-0000-0000-000000000000")
+System.put_env("AUTHENTIK_ADMIN_GROUP", "valkyrie-admins")
 System.put_env("AUTHENTIK_TOKEN", "test-token")
 System.put_env("AUTHENTIK_URL", "http://authentik.test")
 System.put_env("XHAIN_ACCOUNT_CLIENT_SECRET", "test-secret")

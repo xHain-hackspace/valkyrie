@@ -29,6 +29,9 @@ config :valkyrie,
   authentik_token: System.fetch_env!("AUTHENTIK_TOKEN"),
   authentik_url: System.fetch_env!("AUTHENTIK_URL"),
   authentik_member_group_uuid: System.fetch_env!("AUTHENTIK_MEMBER_GROUP_UUID"),
+  # Group (as it appears in the OIDC `groups` claim) whose members are admins.
+  # Optional — unset means nobody is an admin.
+  authentik_admin_group: System.get_env("AUTHENTIK_ADMIN_GROUP"),
   xdoor_signing_key: System.fetch_env!("XDOOR_SIGNING_KEY")
 
 if config_env() == :prod do

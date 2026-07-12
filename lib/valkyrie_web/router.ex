@@ -55,6 +55,23 @@ defmodule ValkyrieWeb.Router do
       live "/members/audit", AuditLive.Index, :index
     end
 
+    ash_authentication_live_session :admin_required,
+      on_mount:
+        if(Application.compile_env(:valkyrie, :disable_auth, false),
+          do: [{ValkyrieWeb.LiveUserAuth, :live_user_optional}],
+          else: [
+            {ValkyrieWeb.LiveUserAuth, :live_user_required},
+            {ValkyrieWeb.LiveUserAuth, :live_admin_required}
+          ]
+        ) do
+      live "/doors", KeyTargetLive.Index, :index
+      live "/doors/new", KeyTargetLive.Form, :new
+      live "/doors/:id/edit", KeyTargetLive.Form, :edit
+
+      live "/doors/:id", KeyTargetLive.Show, :show
+      live "/doors/:id/show/edit", KeyTargetLive.Show, :edit
+    end
+
     auth_routes AuthController, Valkyrie.Accounts.User, path: "/auth"
     sign_out_route AuthController
 
