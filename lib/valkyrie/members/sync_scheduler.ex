@@ -9,6 +9,9 @@ defmodule Valkyrie.Members.SyncScheduler do
         initial_delay_ms: :timer.seconds(30)
 
   In production, `SYNC_INTERVAL_MINUTES` env var overrides the interval.
+
+  Set `enabled: false` (e.g. in dev) to keep the GenServer running but never
+  trigger automatic syncs.
   """
 
   use GenServer
@@ -23,15 +26,20 @@ defmodule Valkyrie.Members.SyncScheduler do
 
   @impl true
   def init(_opts) do
-    interval_ms = get_config(:interval_ms, @default_interval_ms)
-    initial_delay_ms = get_config(:initial_delay_ms, @default_initial_delay_ms)
+    if get_config(:enabled, true) do
+      interval_ms = get_config(:interval_ms, @default_interval_ms)
+      initial_delay_ms = get_config(:initial_delay_ms, @default_initial_delay_ms)
 
-    Logger.info(
-      "[SyncScheduler] Starting. Initial sync in #{initial_delay_ms}ms, then every #{interval_ms}ms."
-    )
+      Logger.info(
+        "[SyncScheduler] Starting. Initial sync in #{initial_delay_ms}ms, then every #{interval_ms}ms."
+      )
 
-    timer_ref = Process.send_after(self(), :run_sync, initial_delay_ms)
-    {:ok, %{interval_ms: interval_ms, timer_ref: timer_ref}}
+      timer_ref = Process.send_after(self(), :run_sync, initial_delay_ms)
+      {:ok, %{interval_ms: interval_ms, timer_ref: timer_ref}}
+    else
+      Logger.info("[SyncScheduler] Automatic syncing disabled (enabled: false).")
+      {:ok, %{interval_ms: nil, timer_ref: nil}}
+    end
   end
 
   @impl true

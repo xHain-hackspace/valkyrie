@@ -102,3 +102,5 @@ config :valkyrie, Valkyrie.Mailer,
 #   port: String.to_integer(System.fetch_env!("SMTP_PORT"))
 
 config :valkyrie, :disable_auth, true
+# Don't run automatic member syncs in dev.
+config :valkyrie, Valkyrie.Members.SyncScheduler, enabled: false
