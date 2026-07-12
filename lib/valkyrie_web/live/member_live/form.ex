@@ -27,13 +27,14 @@ defmodule ValkyrieWeb.MemberLive.Form do
         />
         <.input field={@form[:tree_name]} type="text" label="Treename" />
         <%!-- Hidden field so deselecting all targets still submits an (empty) list. --%>
-        <input type="hidden" name="member[key_targets][]" value="" />
+        <input type="hidden" name="member[key_target_ids][]" value="" />
         <.input
-          field={@form[:key_targets]}
+          field={@form[:key_target_ids]}
           type="select"
           multiple
           label="Key access targets"
-          options={Enum.map(@key_targets, &{&1.name, &1.slug})}
+          value={@current_key_target_ids}
+          options={Enum.map(@key_targets, &{&1.name, &1.id})}
         />
 
         <.input_button type="submit" value="Submit" />
@@ -47,8 +48,20 @@ defmodule ValkyrieWeb.MemberLive.Form do
   def mount(params, _session, socket) do
     member =
       case params["id"] do
-        nil -> nil
-        id -> Ash.get!(Valkyrie.Members.Member, id, actor: socket.assigns.current_user)
+        nil ->
+          nil
+
+        id ->
+          Ash.get!(Valkyrie.Members.Member, id,
+            actor: socket.assigns.current_user,
+            load: [:key_targets]
+          )
+      end
+
+    current_key_target_ids =
+      case member do
+        nil -> []
+        %{key_targets: targets} -> Enum.map(targets, & &1.id)
       end
 
     action = if is_nil(member), do: "New", else: "Edit"
@@ -59,6 +72,7 @@ defmodule ValkyrieWeb.MemberLive.Form do
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(member: member)
      |> assign(:key_targets, KeyTargets.all())
+     |> assign(:current_key_target_ids, current_key_target_ids)
      |> assign(:page_title, page_title)
      |> assign_form()}
   end
@@ -69,7 +83,11 @@ defmodule ValkyrieWeb.MemberLive.Form do
   @impl true
   def handle_event("validate", %{"member" => member_params}, socket) do
     member_params = sanitize_key_targets(member_params)
-    {:noreply, assign(socket, form: AshPhoenix.Form.validate(socket.assigns.form, member_params))}
+
+    {:noreply,
+     socket
+     |> assign(:current_key_target_ids, Map.get(member_params, "key_target_ids", []))
+     |> assign(form: AshPhoenix.Form.validate(socket.assigns.form, member_params))}
   end
 
   def handle_event("save", %{"member" => member_params}, socket) do
@@ -101,9 +119,9 @@ defmodule ValkyrieWeb.MemberLive.Form do
     end
   end
 
-  # The hidden helper input injects an empty entry into key_targets; drop it.
-  defp sanitize_key_targets(%{"key_targets" => targets} = params) when is_list(targets) do
-    %{params | "key_targets" => Enum.reject(targets, &(&1 == ""))}
+  # The hidden helper input injects an empty entry into key_target_ids; drop it.
+  defp sanitize_key_targets(%{"key_target_ids" => ids} = params) when is_list(ids) do
+    %{params | "key_target_ids" => Enum.reject(ids, &(&1 == ""))}
   end
 
   defp sanitize_key_targets(params), do: params

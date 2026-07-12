@@ -4,6 +4,14 @@ defmodule ValkyrieWeb.MemberLive.FormTest do
   import Phoenix.LiveViewTest
 
   alias Valkyrie.Members.Member
+  alias Valkyrie.Members.KeyTargets
+
+  setup do
+    ensure_key_targets()
+    :ok
+  end
+
+  defp target_id(slug), do: Enum.find(KeyTargets.all(), &(&1.slug == slug)).id
 
   describe "new member form" do
     test "renders an empty form", %{conn: conn} do
@@ -35,17 +43,17 @@ defmodule ValkyrieWeb.MemberLive.FormTest do
           username: "alice",
           tree_name: "aloe",
           ssh_public_key: valid_ssh_key(),
-          key_targets: ["g16"]
+          key_target_ids: [target_id("g16")]
         }
       )
       |> render_submit()
 
       assert_redirect(view, ~p"/members")
 
-      [member] = Ash.read!(Member)
+      [member] = Ash.read!(Member, load: [:key_targets])
       assert member.username == "alice"
       assert member.is_manual_entry == true
-      assert member.key_targets == ["g16"]
+      assert Enum.map(member.key_targets, & &1.slug) == ["g16"]
     end
   end
 

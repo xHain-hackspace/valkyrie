@@ -1,24 +1,17 @@
 defmodule ValkyrieWeb.AuthorizedKeysControllerTest do
   use ValkyrieWeb.ConnCase
 
-  alias Valkyrie.Members.Member
   alias Valkyrie.Members.KeyTarget
 
-  @valid_ssh_key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOn6J0bzZLnNNvMVDzyP63RNQjdT3BgBRZLm2wO+9sZl"
   @invalid_ssh_key "not-a-valid-key"
-  @all_targets ["g16", "g18", "g20"]
+
+  setup do
+    ensure_key_targets()
+    :ok
+  end
 
   defp create_member(attrs) do
-    defaults = %{
-      username: "testuser",
-      xhain_account_id: 1,
-      tree_name: "testtree",
-      ssh_public_key: @valid_ssh_key,
-      is_active: true,
-      key_targets: @all_targets
-    }
-
-    Ash.create!(Member, Map.merge(defaults, attrs), action: :create)
+    member_fixture(Map.merge(%{tree_name: "testtree"}, Map.new(attrs)))
   end
 
   defp key_target_by_slug(slug) do
@@ -84,7 +77,7 @@ defmodule ValkyrieWeb.AuthorizedKeysControllerTest do
     end
 
     test "deduplicates identical key lines across targets", %{conn: conn} do
-      create_member(%{tree_name: "birke", key_targets: @all_targets})
+      create_member(%{tree_name: "birke", key_targets: ["g16", "g18", "g20"]})
 
       body = conn |> get(~p"/authorized_keys") |> response(200)
 
@@ -156,7 +149,7 @@ defmodule ValkyrieWeb.AuthorizedKeysControllerTest do
   describe "target deletion revokes access" do
     test "removes the target path and drops members whose only grant it was",
          %{conn: conn} do
-      Ash.create!(KeyTarget, %{slug: "garden", name: "Garden"})
+      key_target_fixture(%{slug: "garden", name: "Garden"})
 
       # A is granted only the garden target; B also has g16.
       create_member(%{username: "a", tree_name: "birke", key_targets: ["garden"]})

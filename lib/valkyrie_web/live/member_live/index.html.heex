@@ -145,7 +145,7 @@
             name={"key_target_all_#{member.id}"}
             value="all"
             label="All"
-            checked={Enum.all?(@key_targets, &(&1.slug in member.key_targets))}
+            checked={Enum.all?(@key_targets, fn t -> Enum.any?(member.key_targets, &(&1.id == t.id)) end)}
             size="small"
             color="primary"
             phx-click="toggle_all_targets"
@@ -158,7 +158,7 @@
               name={"key_target_#{target.slug}_#{member.id}"}
               value={target.slug}
               label={target.name}
-              checked={target.slug in member.key_targets}
+              checked={Enum.any?(member.key_targets, &(&1.id == target.id))}
               size="small"
               color="primary"
               phx-click="toggle_target"

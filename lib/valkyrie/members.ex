@@ -25,6 +25,14 @@ defmodule Valkyrie.Members do
       define :list_versions, action: :read, default_options: [load: [:user]]
     end
 
+    resource Valkyrie.Members.KeyTargetAccess.Version do
+      define :list_access_versions, action: :read, default_options: [load: [:user]]
+    end
+
+    resource Valkyrie.Members.KeyTarget.Version do
+      define :list_key_target_versions, action: :read
+    end
+
     resource Valkyrie.Members.Member do
       define :change_keyholder_status, action: :change_keyholder_status
       define :list_members, action: :read
@@ -47,6 +55,7 @@ defmodule Valkyrie.Members do
     end
 
     resource Valkyrie.Members.KeyTarget
+    resource Valkyrie.Members.KeyTargetAccess
   end
 
   def get_member_by_username(username) do

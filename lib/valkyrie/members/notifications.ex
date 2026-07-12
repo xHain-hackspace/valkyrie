@@ -8,19 +8,19 @@ defmodule Valkyrie.Members.Notifications do
   import Swoosh.Email
 
   alias Valkyrie.Mailer
+  alias Valkyrie.Members.Member
 
   def notify_ssh_key_changed(%{email: email}) when is_nil(email) or email == "" do
     Logger.info("Skipping SSH key change notification: no email on record")
     :ok
   end
 
-  def notify_ssh_key_changed(%{
-        email: email,
-        username: username,
-        ssh_public_key: ssh_key,
-        key_targets: key_targets
-      }) do
-    build_ssh_key_changed_email(email, username, ssh_key, key_targets != [])
+  def notify_ssh_key_changed(
+        %{email: email, username: username, ssh_public_key: ssh_key} = member
+      ) do
+    member = Ash.load!(member, :key_targets)
+
+    build_ssh_key_changed_email(email, username, ssh_key, Member.keyholder?(member))
     |> Mailer.deliver()
     |> case do
       {:ok, _} ->

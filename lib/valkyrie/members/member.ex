@@ -10,10 +10,12 @@ defmodule Valkyrie.Members.Member do
     store_action_name? true
     belongs_to_actor :user, destination: Valkyrie.Accounts.User, public?: true
 
+    # Access grants/revocations are audited on the `KeyTargetAccess` join resource,
+    # so `change_keyholder_status` (which only manages that relationship) is not
+    # tracked here.
     on_actions [
       :create_manual_entry,
       :update_manual_entry,
-      :change_keyholder_status,
       :sync_update
     ]
 
@@ -40,10 +42,12 @@ defmodule Valkyrie.Members.Member do
     create :create do
       primary? true
 
+      # Access (`key_targets`) is intentionally NOT managed here: this action is an
+      # upsert used by the Authentik sync, and managing the relationship would wipe a
+      # member's access on every sync. Grant access via `change_keyholder_status`.
       accept [
         :username,
         :xhain_account_id,
-        :key_targets,
         :ssh_public_key,
         :tree_name,
         :is_active,
@@ -58,8 +62,6 @@ defmodule Valkyrie.Members.Member do
       change fn changeset, _ ->
         Ash.Changeset.change_attribute(changeset, :archived_at, nil)
       end
-
-      change &validate_key_targets/2
     end
 
     create :create_manual_entry do
@@ -67,9 +69,10 @@ defmodule Valkyrie.Members.Member do
         :username,
         :tree_name,
         :ssh_public_key,
-        :key_targets,
         :matrix_contact
       ]
+
+      argument :key_target_ids, {:array, :uuid}, default: []
 
       upsert? true
       upsert_identity :unique_username
@@ -82,7 +85,7 @@ defmodule Valkyrie.Members.Member do
         })
       end
 
-      change &validate_key_targets/2
+      change manage_relationship(:key_target_ids, :key_targets, type: :append_and_remove)
     end
 
     update :sync_update do
@@ -104,18 +107,23 @@ defmodule Valkyrie.Members.Member do
         :username,
         :tree_name,
         :ssh_public_key,
-        :key_targets,
         :matrix_contact
       ]
 
-      change &validate_key_targets/2
+      argument :key_target_ids, {:array, :uuid}, default: []
+
+      change manage_relationship(:key_target_ids, :key_targets, type: :append_and_remove)
     end
 
+    # Sets a member's access to exactly the given set of key targets (by id).
+    # Referential integrity is enforced by the join resource's foreign keys, so no
+    # slug validation is needed — an unknown id simply cannot be related.
     update :change_keyholder_status do
       require_atomic? false
-      accept [:key_targets]
 
-      change &validate_key_targets/2
+      argument :key_target_ids, {:array, :uuid}, allow_nil?: false
+
+      change manage_relationship(:key_target_ids, :key_targets, type: :append_and_remove)
     end
   end
 
@@ -142,13 +150,6 @@ defmodule Valkyrie.Members.Member do
       description "The tree name of the member"
       allow_nil? false
       public? true
-    end
-
-    attribute :key_targets, {:array, :string} do
-      description "Slugs of the key access targets this member has access to"
-      allow_nil? false
-      public? true
-      default []
     end
 
     attribute :ssh_public_key, :string do
@@ -186,32 +187,34 @@ defmodule Valkyrie.Members.Member do
     end
   end
 
+  relationships do
+    has_many :key_target_accesses, Valkyrie.Members.KeyTargetAccess
+
+    many_to_many :key_targets, Valkyrie.Members.KeyTarget do
+      description "The key access targets this member has access to."
+      through Valkyrie.Members.KeyTargetAccess
+      source_attribute_on_join_resource :member_id
+      destination_attribute_on_join_resource :key_target_id
+      public? true
+    end
+  end
+
   identities do
     identity :unique_username, [:username], where: expr(is_nil(archived_at))
   end
 
-  @doc "Whether the member has access to at least one key target."
-  def keyholder?(%{key_targets: targets}), do: targets != []
+  @doc """
+  Whether the member has access to at least one key target.
+  Requires the `:key_targets` relationship to be loaded.
+  """
+  def keyholder?(%{key_targets: targets}) when is_list(targets), do: targets != []
 
-  @doc "Whether the member has access to a specific key target."
-  def keyholder?(%{key_targets: targets}, target), do: target in targets
-
-  @doc false
-  # Reject any key_targets that are not configured targets.
-  def validate_key_targets(changeset, _context) do
-    targets = Ash.Changeset.get_attribute(changeset, :key_targets) || []
-
-    case targets -- Valkyrie.Members.KeyTargets.slugs() do
-      [] ->
-        changeset
-
-      invalid ->
-        Ash.Changeset.add_error(changeset,
-          field: :key_targets,
-          message: "unknown key targets: #{Enum.join(invalid, ", ")}"
-        )
-    end
-  end
+  @doc """
+  Whether the member has access to the key target with the given slug.
+  Requires the `:key_targets` relationship to be loaded.
+  """
+  def keyholder?(%{key_targets: targets}, slug) when is_list(targets),
+    do: Enum.any?(targets, &(&1.slug == slug))
 
   def ssh_public_key_valid?(nil), do: false
   def ssh_public_key_valid?(""), do: false

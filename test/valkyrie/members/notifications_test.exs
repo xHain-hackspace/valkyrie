@@ -5,15 +5,17 @@ defmodule Valkyrie.Members.NotificationsTest do
 
   alias Valkyrie.Members.Notifications
 
-  @ssh_key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOn6J0bzZLnNNvMVDzyP63RNQjdT3BgBRZLm2wO+9sZl"
+  setup do
+    ensure_key_targets()
+    :ok
+  end
 
   defp member(key_targets) do
-    %{
-      email: "member@example.com",
+    member_fixture(%{
       username: "alice",
-      ssh_public_key: @ssh_key,
+      email: "member@example.com",
       key_targets: key_targets
-    }
+    })
   end
 
   test "skips sending when the member has no email" do

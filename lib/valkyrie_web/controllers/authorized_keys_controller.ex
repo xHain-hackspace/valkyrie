@@ -1,5 +1,6 @@
 defmodule ValkyrieWeb.AuthorizedKeysController do
   use ValkyrieWeb, :controller
+  require Ash.Query
   alias Valkyrie.Members.KeyTargets
   alias Valkyrie.Members.Member
 
@@ -66,24 +67,30 @@ defmodule ValkyrieWeb.AuthorizedKeysController do
   end
 
   defp build_for_target(slug) do
-    eligible_members()
-    |> Enum.filter(fn %Member{} = m -> slug in m.key_targets end)
+    # Filter to members granted this target in SQL (via the join) rather than
+    # loading every member's key_targets — a large member set would otherwise
+    # blow SQLite's expression-depth limit.
+    Member
+    |> Ash.Query.filter(exists(key_target_accesses, key_target.slug == ^slug))
+    |> eligible_members()
     |> Enum.map(&get_ssh_pub_key_for_list/1)
     |> Enum.join("\n")
   end
 
   defp build_union() do
-    eligible_members()
-    |> Enum.filter(&Member.keyholder?/1)
+    Member
+    |> Ash.Query.filter(exists(key_target_accesses, true))
+    |> eligible_members()
     |> Enum.map(&get_ssh_pub_key_for_list/1)
     |> Enum.uniq()
     |> Enum.join("\n")
   end
 
-  defp eligible_members() do
-    Ash.read!(Member)
+  defp eligible_members(query) do
+    query
+    |> Ash.Query.filter(is_active == true)
+    |> Ash.read!()
     |> Enum.sort_by(fn member -> member.tree_name end)
-    |> Enum.filter(fn %Member{} = m -> m.is_active end)
     |> Enum.filter(fn %Member{} = m -> Member.ssh_public_key_valid?(m.ssh_public_key) end)
   end
 

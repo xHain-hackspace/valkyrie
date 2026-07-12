@@ -21,6 +21,11 @@ defmodule ValkyrieWeb.KeyTargetLive.Form do
         <%= if @form.source.type == :create do %>
           <.input field={@form[:slug]} type="text" label="Slug" />
           <.input field={@form[:name]} type="text" label="Name" />
+          <.input
+            field={@form[:grant_to_all_keyholders]}
+            type="checkbox"
+            label="Grant access to all current keyholders"
+          />
         <% end %>
         <%= if @form.source.type == :update do %>
           <%!-- Slug is immutable (natural key + URL identity); only the name is editable. --%>
@@ -89,6 +94,9 @@ defmodule ValkyrieWeb.KeyTargetLive.Form do
           as: "key_target",
           actor: socket.assigns.current_user
         )
+        # Seed the "grant to all keyholders" checkbox so it renders checked by
+        # default, matching the create action's `grant_to_all_keyholders` default.
+        |> AshPhoenix.Form.validate(%{"grant_to_all_keyholders" => "true"})
       end
 
     assign(socket, form: to_form(form))

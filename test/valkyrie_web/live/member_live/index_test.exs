@@ -8,7 +8,15 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
   setup do
     SyncState.finish_sync()
+    ensure_key_targets()
     :ok
+  end
+
+  defp target_slugs(member_id) do
+    Member
+    |> Ash.get!(member_id, authorize?: false, load: [:key_targets])
+    |> Map.fetch!(:key_targets)
+    |> Enum.map(& &1.slug)
   end
 
   describe "member list" do
@@ -128,8 +136,7 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
       view |> element("#kt-g16-#{member.id}") |> render_click()
 
-      updated = Ash.get!(Member, member.id, authorize?: false)
-      assert updated.key_targets == ["g16"]
+      assert target_slugs(member.id) == ["g16"]
     end
 
     test "revokes access to a target", %{conn: conn} do
@@ -139,8 +146,7 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
       view |> element("#kt-g16-#{member.id}") |> render_click()
 
-      updated = Ash.get!(Member, member.id, authorize?: false)
-      assert updated.key_targets == ["g18"]
+      assert target_slugs(member.id) == ["g18"]
     end
   end
 
@@ -152,8 +158,7 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
       view |> element("#kt-all-#{member.id}") |> render_click()
 
-      updated = Ash.get!(Member, member.id, authorize?: false)
-      assert Enum.sort(updated.key_targets) == ["g16", "g18", "g20"]
+      assert Enum.sort(target_slugs(member.id)) == ["g16", "g18", "g20"]
     end
 
     test "revokes all targets when the member already holds every one", %{conn: conn} do
@@ -163,8 +168,7 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
       view |> element("#kt-all-#{member.id}") |> render_click()
 
-      updated = Ash.get!(Member, member.id, authorize?: false)
-      assert updated.key_targets == []
+      assert target_slugs(member.id) == []
     end
 
     test "grants all targets from a partial set", %{conn: conn} do
@@ -174,8 +178,7 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
 
       view |> element("#kt-all-#{member.id}") |> render_click()
 
-      updated = Ash.get!(Member, member.id, authorize?: false)
-      assert Enum.sort(updated.key_targets) == ["g16", "g18", "g20"]
+      assert Enum.sort(target_slugs(member.id)) == ["g16", "g18", "g20"]
     end
 
     test "the 'All' checkbox is derived from the member's targets", %{conn: conn} do

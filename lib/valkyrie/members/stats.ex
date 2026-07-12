@@ -9,24 +9,31 @@ defmodule Valkyrie.Members.Stats do
   alias Valkyrie.Members.Member
   alias Valkyrie.Members.KeyTargets
   alias Valkyrie.Members.KeyTarget
+  require Logger
 
   def emit_member_counts do
-    members = Member |> Ash.read!(authorize?: false)
+    total = Ash.count!(Member, authorize?: false)
 
-    keyholder_count = Enum.count(members, &Member.keyholder?/1)
+    keyholder_count =
+      Member
+      |> Ash.Query.filter(exists(key_target_accesses, true))
+      |> Ash.count!(authorize?: false)
 
-    :telemetry.execute([:valkyrie, :members, :total], %{count: length(members)}, %{})
+    :telemetry.execute([:valkyrie, :members, :total], %{count: total}, %{})
 
     :telemetry.execute([:valkyrie, :members, :keyholders], %{count: keyholder_count}, %{
       target: "all"
     })
 
     for %KeyTarget{} = key_target <- KeyTargets.all() do
-      target_key_holders = Enum.count(members, fn m -> Member.keyholder?(m, key_target.slug) end)
+      target_key_holder_count =
+        Member
+        |> Ash.Query.filter(exists(key_target_accesses, key_target_id == ^key_target.id))
+        |> Ash.count!(authorize?: false)
 
       :telemetry.execute(
         [:valkyrie, :members, :keyholders],
-        %{count: target_key_holders},
+        %{count: target_key_holder_count},
         %{target: key_target.slug}
       )
     end
