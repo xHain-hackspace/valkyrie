@@ -44,8 +44,11 @@ defmodule Valkyrie.MembersTest do
 
       stub_authentik(
         page_response([
-          active_user(%{"username" => "alice", "pk" => existing.xhain_account_id,
-            "attributes" => %{"ssh-key" => new_key, "tree" => "aloe"}})
+          active_user(%{
+            "username" => "alice",
+            "pk" => existing.xhain_account_id,
+            "attributes" => %{"ssh-key" => new_key, "tree" => "aloe"}
+          })
         ])
       )
 
@@ -133,9 +136,7 @@ defmodule Valkyrie.MembersTest do
     end
 
     test "sets is_active true for users in the member group" do
-      stub_authentik(
-        page_response([active_user(%{"username" => "alice"})])
-      )
+      stub_authentik(page_response([active_user(%{"username" => "alice"})]))
 
       sync()
 
@@ -144,9 +145,7 @@ defmodule Valkyrie.MembersTest do
     end
 
     test "sets is_active false for users not in the member group" do
-      stub_authentik(
-        page_response([user_fixture(%{"username" => "alice", "groups" => []})])
-      )
+      stub_authentik(page_response([user_fixture(%{"username" => "alice", "groups" => []})]))
 
       sync()
 

@@ -8,6 +8,8 @@ config :valkyrie, Valkyrie.Repo,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true
 
+config :valkyrie, Valkyrie.Repo, log: false
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -84,5 +86,19 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+config :valkyrie, Valkyrie.Mailer,
+  adapter: Swoosh.Adapters.Logger,
+  level: :debug,
+  log_full_email: true
+
+# config :valkyrie, Valkyrie.Mailer,
+#   adapter: Swoosh.Adapters.Mua,
+#   relay: System.fetch_env!("SMTP_HOST"),
+#   auth: [
+#     username: System.fetch_env!("SMTP_USER"),
+#     password: System.fetch_env!("SMTP_PASSWORD")
+#   ],
+#   port: String.to_integer(System.fetch_env!("SMTP_PORT"))
 
 config :valkyrie, :disable_auth, true

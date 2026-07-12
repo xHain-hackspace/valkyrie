@@ -24,7 +24,7 @@ defmodule Valkyrie.Members.MemberTest do
   describe ":create_manual_entry action" do
     test "sets is_manual_entry to true and is_active to true" do
       member =
-        Ash.create!(Member, %{username: "alice", tree_name: "aloe", has_key: false},
+        Ash.create!(Member, %{username: "alice", tree_name: "aloe", key_targets: []},
           action: :create_manual_entry
         )
 
@@ -52,32 +52,55 @@ defmodule Valkyrie.Members.MemberTest do
   end
 
   describe ":update_manual_entry action" do
-    test "can update username, tree_name, ssh_public_key and has_key" do
+    test "can update username, tree_name, ssh_public_key and key_targets" do
       member =
-        Ash.create!(Member, %{username: "alice", tree_name: "aloe", has_key: false},
+        Ash.create!(Member, %{username: "alice", tree_name: "aloe", key_targets: []},
           action: :create_manual_entry
         )
 
       updated =
-        Ash.update!(member, %{username: "alice2", tree_name: "birke", has_key: true},
+        Ash.update!(
+          member,
+          %{username: "alice2", tree_name: "birke", key_targets: ["g16"]},
           action: :update_manual_entry
         )
 
       assert updated.username == "alice2"
       assert updated.tree_name == "birke"
-      assert updated.has_key == true
+      assert updated.key_targets == ["g16"]
+    end
+
+    test "rejects unknown key targets" do
+      member =
+        Ash.create!(Member, %{username: "alice", tree_name: "aloe", key_targets: []},
+          action: :create_manual_entry
+        )
+
+      assert {:error, _} =
+               Ash.update(member, %{key_targets: ["nope"]}, action: :update_manual_entry)
     end
   end
 
   describe ":change_keyholder_status action" do
-    test "toggles has_key" do
-      member = member_fixture(%{has_key: false})
+    test "updates key_targets" do
+      member = member_fixture(%{key_targets: []})
 
-      with_key = Ash.update!(member, %{has_key: true}, action: :change_keyholder_status)
-      assert with_key.has_key == true
+      with_key =
+        Ash.update!(member, %{key_targets: ["g16"]}, action: :change_keyholder_status)
 
-      without_key = Ash.update!(with_key, %{has_key: false}, action: :change_keyholder_status)
-      assert without_key.has_key == false
+      assert with_key.key_targets == ["g16"]
+
+      without_key =
+        Ash.update!(with_key, %{key_targets: []}, action: :change_keyholder_status)
+
+      assert without_key.key_targets == []
+    end
+
+    test "rejects unknown key targets" do
+      member = member_fixture(%{key_targets: []})
+
+      assert {:error, _} =
+               Ash.update(member, %{key_targets: ["nope"]}, action: :change_keyholder_status)
     end
   end
 

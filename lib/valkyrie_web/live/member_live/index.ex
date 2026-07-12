@@ -5,6 +5,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
   require Ash.Query
 
   alias Valkyrie.Members
+  alias Valkyrie.Members.KeyTargets
   alias Valkyrie.Members.Member
   alias Valkyrie.Members.LastAccess
   alias Valkyrie.Members.SyncState
@@ -24,6 +25,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
      |> assign(:page_title, "Listing Members")
      |> assign(:updating, false)
      |> assign(:sync_progress, nil)
+     |> assign(:key_targets, KeyTargets.all())
      |> assign(:search_query, "")
      |> assign(:filters, %{
        "only_manual_entries" => false,
@@ -109,21 +111,32 @@ defmodule ValkyrieWeb.MemberLive.Index do
   end
 
   @impl true
-  def handle_event("toggle_has_key", %{"member-id" => member_id} = params, socket) do
-    desired = Map.get(params, "value") == "true"
+  def handle_event("toggle_target", %{"member-id" => member_id, "slug" => slug}, socket) do
     member = Ash.get!(Member, member_id, actor: socket.assigns.current_user)
 
-    case Members.change_keyholder_status(member, %{has_key: desired},
-           actor: socket.assigns.current_user
-         ) do
-      {:ok, updated} ->
-        Logger.info("Updated member #{member_id}: #{inspect(updated)}")
-        {:noreply, stream_insert(socket, :members, add_status_to_member(updated))}
+    new_targets =
+      if slug in member.key_targets do
+        member.key_targets -- [slug]
+      else
+        Enum.uniq([slug | member.key_targets])
+      end
 
-      {:error, _reason} ->
-        Logger.error("Failed to update member #{member_id}")
-        {:noreply, socket}
-    end
+    {:noreply, update_key_targets(socket, member, new_targets)}
+  end
+
+  @impl true
+  def handle_event("toggle_all_targets", %{"member-id" => member_id}, socket) do
+    member = Ash.get!(Member, member_id, actor: socket.assigns.current_user)
+    all_slugs = Enum.map(socket.assigns.key_targets, & &1.slug)
+
+    new_targets =
+      if Enum.all?(all_slugs, &(&1 in member.key_targets)) do
+        []
+      else
+        all_slugs
+      end
+
+    {:noreply, update_key_targets(socket, member, new_targets)}
   end
 
   @impl true
@@ -212,7 +225,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   defp maybe_filter_only_keyholders(query, socket) do
     if socket.assigns.filters["only_keyholders"] == true do
-      query |> Ash.Query.filter(has_key: true)
+      query |> Ash.Query.filter(fragment("json_array_length(?) > 0", key_targets))
     else
       query
     end
@@ -276,5 +289,19 @@ defmodule ValkyrieWeb.MemberLive.Index do
 
   defp add_status_to_member(member) do
     Map.put(member, :_status, get_status(member))
+  end
+
+  defp update_key_targets(socket, member, new_targets) do
+    case Members.change_keyholder_status(member, %{key_targets: new_targets},
+           actor: socket.assigns.current_user
+         ) do
+      {:ok, updated} ->
+        Logger.info("Updated member #{member.id}: #{inspect(updated)}")
+        stream_insert(socket, :members, add_status_to_member(updated))
+
+      {:error, _reason} ->
+        Logger.error("Failed to update member #{member.id}")
+        socket
+    end
   end
 end

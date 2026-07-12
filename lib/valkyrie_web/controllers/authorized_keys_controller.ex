@@ -1,46 +1,90 @@
 defmodule ValkyrieWeb.AuthorizedKeysController do
   use ValkyrieWeb, :controller
+  alias Valkyrie.Members.KeyTargets
   alias Valkyrie.Members.Member
 
   @doc """
-  Serves the authorized_keys file with SSH public keys from all members.
+  Serves the combined authorized_keys file: the deduplicated union of every
+  target's keys (any active member with a valid key that has access to at least
+  one target).
   """
   def authorized_keys(conn, _params) do
-    # track access only if xdoor header is set
-    case(get_req_header(conn, "x-door")) do
-      [_] ->
-        Valkyrie.Members.access(%{resource_name: "authorized_keys"})
-
-      [] ->
-        nil
-    end
+    track_access(conn, "authorized_keys")
 
     conn
     |> put_resp_header("content-type", "application/octet-stream")
-    |> text(build_authorized_keys_content())
+    |> text(build_union())
   end
 
   @doc """
-  Builds the signature for the authorized_keys content.
+  Builds the signature for the combined authorized_keys content.
   """
   def authorized_keys_signature(conn, _params) do
-    signature =
-      build_authorized_keys_content()
-      |> sign()
-
     conn
     |> put_resp_header("content-type", "application/pgp-signature")
-    |> text(signature)
+    |> text(sign(build_union()))
   end
 
-  defp build_authorized_keys_content() do
+  @doc """
+  Serves the authorized_keys file (or its signature, for a `.sig` suffix) for a
+  single key access target identified by its slug.
+  """
+  def authorized_keys_for_target(conn, %{"target" => target}) do
+    {slug, signature?} = parse_target(target)
+
+    cond do
+      not KeyTargets.valid_slug?(slug) ->
+        send_resp(conn, 404, "")
+
+      signature? ->
+        conn
+        |> put_resp_header("content-type", "application/pgp-signature")
+        |> text(sign(build_for_target(slug)))
+
+      true ->
+        track_access(conn, "authorized_keys:" <> slug)
+
+        conn
+        |> put_resp_header("content-type", "application/octet-stream")
+        |> text(build_for_target(slug))
+    end
+  end
+
+  defp parse_target(target) do
+    case String.split(target, ".sig", parts: 2) do
+      [slug, ""] -> {slug, true}
+      _ -> {target, false}
+    end
+  end
+
+  # Track access only if the xdoor header is set.
+  defp track_access(conn, resource_name) do
+    case get_req_header(conn, "x-door") do
+      [_] -> Valkyrie.Members.access(%{resource_name: resource_name})
+      [] -> nil
+    end
+  end
+
+  defp build_for_target(slug) do
+    eligible_members()
+    |> Enum.filter(fn %Member{} = m -> slug in m.key_targets end)
+    |> Enum.map(&get_ssh_pub_key_for_list/1)
+    |> Enum.join("\n")
+  end
+
+  defp build_union() do
+    eligible_members()
+    |> Enum.filter(&Member.keyholder?/1)
+    |> Enum.map(&get_ssh_pub_key_for_list/1)
+    |> Enum.uniq()
+    |> Enum.join("\n")
+  end
+
+  defp eligible_members() do
     Ash.read!(Member)
     |> Enum.sort_by(fn member -> member.tree_name end)
     |> Enum.filter(fn %Member{} = m -> m.is_active end)
-    |> Enum.filter(fn %Member{} = m -> m.has_key end)
     |> Enum.filter(fn %Member{} = m -> Member.ssh_public_key_valid?(m.ssh_public_key) end)
-    |> Enum.map(&get_ssh_pub_key_for_list/1)
-    |> Enum.join("\n")
   end
 
   defp get_ssh_pub_key_for_list(%{ssh_public_key: nil}), do: nil

@@ -1,4 +1,5 @@
 import Config
+
 config :valkyrie,
   token_signing_secret: "h+Y51jGCFZWAceJy8mv7XXKJXQOBRKki",
   disable_auth: true
@@ -14,6 +15,7 @@ System.put_env("XHAIN_ACCOUNT_CLIENT_SECRET", "test-secret")
 System.put_env("XHAIN_ACCOUNT_CLIENT_ID", "test-client-id")
 System.put_env("XHAIN_ACCOUNT_BASE_URL", "http://account.test")
 System.put_env("XHAIN_ACCOUNT_REDIRECT_URI", "http://localhost:4002/auth/callback")
+
 System.put_env("XDOOR_SIGNING_KEY", """
 -----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAylL6ZaL1sUmG3wyUqzwBTjwfyJKdgHj6sT1vSe3+QV0XaURU
@@ -43,6 +45,7 @@ g8g9uQKBgQCLrWUGWSR8sUHksgHjWEhVnax8IHhIpg3oNfbaYGH+qglOUeo0rbn6
 h8S8wZ8D0/6l8233+SyCKyJErps+gOXWfn6VRhs/xmNyqBflAx07mg==
 -----END RSA PRIVATE KEY-----
 """)
+
 config :bcrypt_elixir, log_rounds: 1
 config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 

@@ -70,6 +70,9 @@ defmodule ValkyrieWeb.Router do
     # Public route, no authentication required - serves plain text
     get "/authorized_keys", AuthorizedKeysController, :authorized_keys
     get "/authorized_keys.sig", AuthorizedKeysController, :authorized_keys_signature
+    # Per-target lists. The :target segment also carries an optional ".sig"
+    # suffix for the signature (e.g. /authorized_keys/main_door.sig).
+    get "/authorized_keys/:target", AuthorizedKeysController, :authorized_keys_for_target
   end
 
   # Other scopes may use custom stacks.

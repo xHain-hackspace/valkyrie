@@ -200,7 +200,12 @@ defmodule ValkyrieWeb.Components.Table do
             >
               {render_slot(@inner_block)}
 
-              <.tr :for={row <- @rows} :if={@rows != []} id={@row_id && @row_id.(row)} class={@row_class}>
+              <.tr
+                :for={row <- @rows}
+                :if={@rows != []}
+                id={@row_id && @row_id.(row)}
+                class={@row_class}
+              >
                 <.td
                   :for={{col, i} <- Enum.with_index(@col)}
                   phx-click={@row_click && @row_click.(row)}

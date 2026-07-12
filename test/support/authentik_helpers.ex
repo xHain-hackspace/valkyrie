@@ -8,7 +8,8 @@ defmodule Valkyrie.AuthentikHelpers do
         "type" => "internal",
         "groups" => [],
         "attributes" => %{
-          "ssh-key" => "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOn6J0bzZLnNNvMVDzyP63RNQjdT3BgBRZLm2wO+9sZl",
+          "ssh-key" =>
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOn6J0bzZLnNNvMVDzyP63RNQjdT3BgBRZLm2wO+9sZl",
           "tree" => "birke"
         }
       },

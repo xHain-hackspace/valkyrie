@@ -49,14 +49,15 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
       refute html =~ "bob"
     end
 
-    test "only keyholders filter shows only members with has_key", %{conn: conn} do
-      keyholder = member_fixture(%{username: "keyholder", has_key: true, is_active: true})
+    test "only keyholders filter shows only members with key access", %{conn: conn} do
+      keyholder =
+        member_fixture(%{username: "keyholder", key_targets: ["g16"], is_active: true})
 
       no_key =
         member_fixture(%{
           username: "no-key",
           xhain_account_id: 2,
-          has_key: false,
+          key_targets: [],
           is_active: true
         })
 
@@ -119,27 +120,74 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
     end
   end
 
-  describe "toggle has_key" do
-    test "updates keyholder status to true", %{conn: conn} do
-      member = member_fixture(%{username: "alice", has_key: false})
+  describe "toggle_target" do
+    test "grants access to a target", %{conn: conn} do
+      member = member_fixture(%{username: "alice", key_targets: []})
 
       {:ok, view, _html} = live(conn, ~p"/members")
 
-      render_click(view, "toggle_has_key", %{"member-id" => member.id, "value" => "true"})
+      view |> element("#kt-g16-#{member.id}") |> render_click()
 
       updated = Ash.get!(Member, member.id, authorize?: false)
-      assert updated.has_key == true
+      assert updated.key_targets == ["g16"]
     end
 
-    test "updates keyholder status to false", %{conn: conn} do
-      member = member_fixture(%{username: "alice", has_key: true})
+    test "revokes access to a target", %{conn: conn} do
+      member = member_fixture(%{username: "alice", key_targets: ["g16", "g18"]})
 
       {:ok, view, _html} = live(conn, ~p"/members")
 
-      render_click(view, "toggle_has_key", %{"member-id" => member.id, "value" => "false"})
+      view |> element("#kt-g16-#{member.id}") |> render_click()
 
       updated = Ash.get!(Member, member.id, authorize?: false)
-      assert updated.has_key == false
+      assert updated.key_targets == ["g18"]
+    end
+  end
+
+  describe "toggle_all_targets" do
+    test "grants all targets from an empty set", %{conn: conn} do
+      member = member_fixture(%{username: "alice", key_targets: []})
+
+      {:ok, view, _html} = live(conn, ~p"/members")
+
+      view |> element("#kt-all-#{member.id}") |> render_click()
+
+      updated = Ash.get!(Member, member.id, authorize?: false)
+      assert Enum.sort(updated.key_targets) == ["g16", "g18", "g20"]
+    end
+
+    test "revokes all targets when the member already holds every one", %{conn: conn} do
+      member = member_fixture(%{username: "alice", key_targets: ["g16", "g18", "g20"]})
+
+      {:ok, view, _html} = live(conn, ~p"/members")
+
+      view |> element("#kt-all-#{member.id}") |> render_click()
+
+      updated = Ash.get!(Member, member.id, authorize?: false)
+      assert updated.key_targets == []
+    end
+
+    test "grants all targets from a partial set", %{conn: conn} do
+      member = member_fixture(%{username: "alice", key_targets: ["g16"]})
+
+      {:ok, view, _html} = live(conn, ~p"/members")
+
+      view |> element("#kt-all-#{member.id}") |> render_click()
+
+      updated = Ash.get!(Member, member.id, authorize?: false)
+      assert Enum.sort(updated.key_targets) == ["g16", "g18", "g20"]
+    end
+
+    test "the 'All' checkbox is derived from the member's targets", %{conn: conn} do
+      full = member_fixture(%{username: "full", key_targets: ["g16", "g18", "g20"]})
+
+      partial =
+        member_fixture(%{username: "partial", xhain_account_id: 2, key_targets: ["g16"]})
+
+      {:ok, view, _html} = live(conn, ~p"/members")
+
+      assert has_element?(view, "input#kt-all-#{full.id}[checked]")
+      refute has_element?(view, "input#kt-all-#{partial.id}[checked]")
     end
   end
 

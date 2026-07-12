@@ -18,9 +18,9 @@ defmodule Valkyrie.Members.Notifications do
         email: email,
         username: username,
         ssh_public_key: ssh_key,
-        has_key: has_key
+        key_targets: key_targets
       }) do
-    build_ssh_key_changed_email(email, username, ssh_key, has_key)
+    build_ssh_key_changed_email(email, username, ssh_key, key_targets != [])
     |> Mailer.deliver()
     |> case do
       {:ok, _} ->

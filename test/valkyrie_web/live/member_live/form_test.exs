@@ -35,7 +35,7 @@ defmodule ValkyrieWeb.MemberLive.FormTest do
           username: "alice",
           tree_name: "aloe",
           ssh_public_key: valid_ssh_key(),
-          has_key: "true"
+          key_targets: ["g16"]
         }
       )
       |> render_submit()
@@ -45,6 +45,7 @@ defmodule ValkyrieWeb.MemberLive.FormTest do
       [member] = Ash.read!(Member)
       assert member.username == "alice"
       assert member.is_manual_entry == true
+      assert member.key_targets == ["g16"]
     end
   end
 
@@ -66,9 +67,7 @@ defmodule ValkyrieWeb.MemberLive.FormTest do
 
     test "updates the member and redirects on valid submit", %{conn: conn} do
       member =
-        Ash.create!(Member, %{username: "alice", tree_name: "aloe"},
-          action: :create_manual_entry
-        )
+        Ash.create!(Member, %{username: "alice", tree_name: "aloe"}, action: :create_manual_entry)
 
       {:ok, view, _html} = live(conn, ~p"/members/#{member.id}/edit")
 

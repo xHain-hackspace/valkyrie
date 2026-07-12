@@ -45,6 +45,8 @@ defmodule Valkyrie.Members do
     resource Valkyrie.Members.LastAccess do
       define :access, action: :access
     end
+
+    resource Valkyrie.Members.KeyTarget
   end
 
   def get_member_by_username(username) do

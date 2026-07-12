@@ -34,7 +34,9 @@ defmodule Valkyrie.MailerTelemetry do
 
     case meta do
       %{error: error} ->
-        Logger.error("Mailer: delivery failed in #{ms}ms for #{describe(email)}: #{inspect(error)}")
+        Logger.error(
+          "Mailer: delivery failed in #{ms}ms for #{describe(email)}: #{inspect(error)}"
+        )
 
       _ ->
         Logger.info("Mailer: delivered #{describe(email)} in #{ms}ms")

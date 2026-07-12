@@ -111,7 +111,8 @@ defmodule ValkyrieWeb.Telemetry do
         description: "Member sync crashes"
       ),
       last_value("valkyrie.members.keyholders.count",
-        description: "Current number of members marked as keyholders"
+        tags: [:target],
+        description: "Members with key access, by target ('any' = any target)"
       ),
       last_value("valkyrie.members.total.count",
         description: "Current total number of members"

@@ -2,6 +2,8 @@ defmodule ValkyrieWeb.MemberLive.Form do
   require Logger
   use ValkyrieWeb, :live_view
 
+  alias Valkyrie.Members.KeyTargets
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -24,7 +26,15 @@ defmodule ValkyrieWeb.MemberLive.Form do
           label="SSH Public Key"
         />
         <.input field={@form[:tree_name]} type="text" label="Treename" />
-        <.input field={@form[:has_key]} type="checkbox" label="Keyholder" />
+        <%!-- Hidden field so deselecting all targets still submits an (empty) list. --%>
+        <input type="hidden" name="member[key_targets][]" value="" />
+        <.input
+          field={@form[:key_targets]}
+          type="select"
+          multiple
+          label="Key access targets"
+          options={Enum.map(@key_targets, &{&1.name, &1.slug})}
+        />
 
         <.input_button type="submit" value="Submit" />
         <.button_link navigate={return_path(@return_to, @member)}>Cancel</.button_link>
@@ -48,6 +58,7 @@ defmodule ValkyrieWeb.MemberLive.Form do
      socket
      |> assign(:return_to, return_to(params["return_to"]))
      |> assign(member: member)
+     |> assign(:key_targets, KeyTargets.all())
      |> assign(:page_title, page_title)
      |> assign_form()}
   end
@@ -57,10 +68,13 @@ defmodule ValkyrieWeb.MemberLive.Form do
 
   @impl true
   def handle_event("validate", %{"member" => member_params}, socket) do
+    member_params = sanitize_key_targets(member_params)
     {:noreply, assign(socket, form: AshPhoenix.Form.validate(socket.assigns.form, member_params))}
   end
 
   def handle_event("save", %{"member" => member_params}, socket) do
+    member_params = sanitize_key_targets(member_params)
+
     # Set is_manual_entry to true when creating a new member
     member_params =
       if socket.assigns.form.source.type == :create do
@@ -86,6 +100,13 @@ defmodule ValkyrieWeb.MemberLive.Form do
         {:noreply, assign(socket, form: form)}
     end
   end
+
+  # The hidden helper input injects an empty entry into key_targets; drop it.
+  defp sanitize_key_targets(%{"key_targets" => targets} = params) when is_list(targets) do
+    %{params | "key_targets" => Enum.reject(targets, &(&1 == ""))}
+  end
+
+  defp sanitize_key_targets(params), do: params
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 

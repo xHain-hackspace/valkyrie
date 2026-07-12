@@ -138,17 +138,36 @@
         <% end %>
       </:col>
 
-      <:col :let={{_id, member}} label_class="w-[10%]" label="Keyholder">
-        <.toggle_field
-          id={"toggle-has-key-" <> member.id}
-          name="has_key"
-          checked={member.has_key}
-          size="medium"
-          color="primary"
-          phx-click="toggle_has_key"
-          phx-value-member-id={member.id}
-          phx-debounce="600"
-        />
+      <:col :let={{_id, member}} label_class="w-[15%]" label="Key access">
+        <div :if={@key_targets != []} class="flex flex-col gap-1">
+          <.checkbox_field
+            id={"kt-all-#{member.id}"}
+            name={"key_target_all_#{member.id}"}
+            value="all"
+            label="All"
+            checked={Enum.all?(@key_targets, &(&1.slug in member.key_targets))}
+            size="small"
+            color="primary"
+            phx-click="toggle_all_targets"
+            phx-value-member-id={member.id}
+            phx-debounce="600"
+          />
+          <%= for target <- @key_targets do %>
+            <.checkbox_field
+              id={"kt-#{target.slug}-#{member.id}"}
+              name={"key_target_#{target.slug}_#{member.id}"}
+              value={target.slug}
+              label={target.name}
+              checked={target.slug in member.key_targets}
+              size="small"
+              color="primary"
+              phx-click="toggle_target"
+              phx-value-member-id={member.id}
+              phx-value-slug={target.slug}
+              phx-debounce="600"
+            />
+          <% end %>
+        </div>
       </:col>
 
       <:col :let={{_id, member}} label="Info" label_class="w-[5%]">
