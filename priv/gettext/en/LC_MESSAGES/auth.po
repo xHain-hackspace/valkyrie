@@ -1,0 +1,8 @@
+## Custom translations for the AshAuthentication sign-in UI.
+## Wired via `gettext_backend: {ValkyrieWeb.Gettext, "auth"}` in the router's sign_in_route.
+msgid ""
+msgstr ""
+"Language: en\n"
+
+msgid "Sign in with Xhain account"
+msgstr "Sign in with xHain Account"

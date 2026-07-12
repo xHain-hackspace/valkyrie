@@ -178,6 +178,8 @@ defmodule ValkyrieWeb.Components.Alert do
         flash={@flash}
         variant={@variant}
         width="medium"
+        phx-hook="AutoDismissFlash"
+        data-dismiss-after="2000"
       />
       <.flash
         kind={:error}

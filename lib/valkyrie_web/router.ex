@@ -77,6 +77,7 @@ defmodule ValkyrieWeb.Router do
 
     sign_in_route auth_routes_prefix: "/auth",
                   on_mount: [{ValkyrieWeb.LiveUserAuth, :live_no_user}],
+                  gettext_backend: {ValkyrieWeb.Gettext, "auth"},
                   overrides: [
                     ValkyrieWeb.AuthOverrides,
                     Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI

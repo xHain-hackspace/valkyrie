@@ -22,12 +22,17 @@ defmodule ValkyrieWeb.Components.UserIndicator do
       class={["flex items-center gap-2", @class]}
       title={"Signed in — role: #{role_label(@current_user)}"}
     >
-      <.icon name="hero-user-circle" class="size-6" />
-      <span class="text-sm font-medium">{role_label(@current_user)}</span>
+      <.tooltip text={role_label(@current_user)} position="bottom">
+        <:trigger>
+          <.icon name="hero-user-circle" class="size-6" />
+          <span class="text-sm font-medium">{user_name(@current_user)}</span>
+        </:trigger>
+      </.tooltip>
     </div>
     """
   end
 
   defp role_label(%{is_admin: true}), do: "Admin"
   defp role_label(_user), do: "User"
+  defp user_name(%{username: username}), do: username
 end

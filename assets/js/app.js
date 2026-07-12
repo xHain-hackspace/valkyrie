@@ -26,6 +26,18 @@ import MishkaComponents from "../vendor/mishka_components.js";
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
+// Auto-dismiss a flash after a delay by triggering its existing phx-click
+// (which clears the flash and hides the alert).
+const AutoDismissFlash = {
+  mounted() {
+    const timeout = parseInt(this.el.dataset.dismissAfter || "2000", 10);
+    this.timer = setTimeout(() => this.el.click(), timeout);
+  },
+  destroyed() {
+    clearTimeout(this.timer);
+  },
+};
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {
@@ -34,6 +46,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
   hooks: {
     ...colocatedHooks,
     ...MishkaComponents,
+    AutoDismissFlash,
   },
 });
 // Show progress bar on live navigation and form submits
