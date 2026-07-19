@@ -149,8 +149,8 @@ defmodule ValkyrieWeb.AuditLive.Index do
 
   # Access grants/revokes are recorded as raw create/destroy versions on the join
   # resource; surface them as the domain event instead.
-  defp display_action(%{kind: "access", version_action_type: "create"}), do: "grant_access"
-  defp display_action(%{kind: "access", version_action_type: "destroy"}), do: "revoke_access"
+  defp display_action(%{kind: "access", version_action_type: "create"}), do: "granted key access"
+  defp display_action(%{kind: "access", version_action_type: "destroy"}), do: "revoked key access"
   defp display_action(%{action: action}), do: action
 
   defp lines_for(%{kind: "access", version_action_type: type, key_target_id: id}, targets) do

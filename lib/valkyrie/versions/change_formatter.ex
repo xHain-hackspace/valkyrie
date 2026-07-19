@@ -17,9 +17,9 @@ defmodule Valkyrie.Versions.ChangeFormatter do
 
   # Renders one papertrail change entry as a human-readable line, or "" when the
   # attribute is unchanged (so the caller can skip it).
-  defp format_change(_key, %{"unchanged" => _}), do: ""
+  def format_change(_key, %{"unchanged" => _}), do: ""
 
-  defp format_change(key, %{"to" => elements}) when is_list(elements) do
+  def format_change(key, %{"to" => elements}) when is_list(elements) do
     added = for %{"added" => v} <- elements, do: to_string(v)
     removed = for %{"removed" => v} <- elements, do: to_string(v)
 
@@ -34,16 +34,16 @@ defmodule Valkyrie.Versions.ChangeFormatter do
     end
   end
 
-  defp format_change(key, %{"from" => from, "to" => to}) do
+  def format_change(key, %{"from" => from, "to" => to}) do
     "changed #{key} from #{format_audit_value(from)} to #{format_audit_value(to)}"
   end
 
   # A scalar set on create arrives as %{"to" => value} with no "from".
-  defp format_change(key, %{"to" => to}) do
+  def format_change(key, %{"to" => to}) do
     "changed #{key} from #{format_audit_value(nil)} to #{format_audit_value(to)}"
   end
 
-  defp format_change(_key, _value), do: ""
+  def format_change(_key, _value), do: ""
 
   # Renders a scalar papertrail value as a display string.
   defp format_audit_value(value) when value in [nil, ""], do: "<empty>"

@@ -5,18 +5,18 @@ defmodule ValkyrieWeb.AuditLive.IndexTest do
 
   alias Valkyrie.Members
   alias Valkyrie.Members.KeyTargets
-  alias ValkyrieWeb.AuditLive.Index
+  alias Valkyrie.Versions.ChangeFormatter
 
   defp target_id(slug), do: Enum.find(KeyTargets.all(), &(&1.slug == slug)).id
 
   describe "format_change/2" do
     test "renders scalar from/to changes" do
-      assert Index.format_change("tree_name", %{"from" => "aloe", "to" => "birke"}) ==
+      assert ChangeFormatter.format_change("tree_name", %{"from" => "aloe", "to" => "birke"}) ==
                "changed tree_name from aloe to birke"
     end
 
     test "renders a scalar set (create) with an empty from" do
-      assert Index.format_change("username", %{"to" => "alice"}) ==
+      assert ChangeFormatter.format_change("username", %{"to" => "alice"}) ==
                "changed username from <empty> to alice"
     end
 
@@ -29,7 +29,7 @@ defmodule ValkyrieWeb.AuditLive.IndexTest do
         ]
       }
 
-      assert Index.format_change("key_targets", value) ==
+      assert ChangeFormatter.format_change("key_targets", value) ==
                "changed key_targets: added g18; removed g20"
     end
 
@@ -41,17 +41,17 @@ defmodule ValkyrieWeb.AuditLive.IndexTest do
         ]
       }
 
-      assert Index.format_change("key_targets", value) == "changed key_targets: added g16, g20"
+      assert ChangeFormatter.format_change("key_targets", value) == "changed key_targets: added g16, g20"
     end
 
     test "skips unchanged attributes" do
-      assert Index.format_change("tree_name", %{"unchanged" => "aloe"}) == ""
+      assert ChangeFormatter.format_change("tree_name", %{"unchanged" => "aloe"}) == ""
 
       unchanged_array = %{
         "unchanged" => [%{"index" => %{"unchanged" => 0}, "unchanged" => "g16"}]
       }
 
-      assert Index.format_change("key_targets", unchanged_array) == ""
+      assert ChangeFormatter.format_change("key_targets", unchanged_array) == ""
     end
   end
 
@@ -97,8 +97,10 @@ defmodule ValkyrieWeb.AuditLive.IndexTest do
     end
 
     test "deep pagination reaches the oldest entries", %{conn: conn} do
-      # 30 grants -> 30 access versions -> 2 pages of 20.
-      for i <- 1..30 do
+      # More users than the 100-per-page limit, so the oldest lands on a later
+      # page. Each user also emits a member-create version, so the combined feed
+      # holds well over one page regardless of exact per-user row count.
+      for i <- 1..120 do
         n = String.pad_leading(to_string(i), 3, "0")
 
         %{username: "user#{n}", xhain_account_id: 100 + i, key_targets: []}
@@ -108,13 +110,19 @@ defmodule ValkyrieWeb.AuditLive.IndexTest do
 
       {:ok, view, html} = live(conn, ~p"/members/audit")
 
-      # Page 1 = newest; the oldest grant is not here.
-      assert html =~ "user030"
+      # Page 1 = newest; the oldest user is not here.
+      assert html =~ "user120"
       refute html =~ "user001"
 
-      # Page 2 = older entries, reachable via a real SQL offset (previously capped).
-      page2 = render_hook(view, "pagination", %{"action" => "next"})
-      assert page2 =~ "user001"
+      # Page forward via real SQL offsets (previously capped) until the oldest
+      # entry surfaces — proof deep pages are reachable.
+      found =
+        Enum.reduce_while(1..20, false, fn _, _ ->
+          page = render_hook(view, "pagination", %{"action" => "next"})
+          if page =~ "user001", do: {:halt, true}, else: {:cont, false}
+        end)
+
+      assert found, "paging forward never reached the oldest entry (user001)"
     end
 
     test "a deleted door's name still resolves from paper-trail history", %{conn: conn} do
