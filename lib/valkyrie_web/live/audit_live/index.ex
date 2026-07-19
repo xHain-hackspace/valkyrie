@@ -8,23 +8,19 @@ defmodule ValkyrieWeb.AuditLive.Index do
   alias Valkyrie.Members
   alias Valkyrie.Members.KeyTargets
   alias Valkyrie.Members.Member
-  alias Valkyrie.Repo
+  alias Valkyrie.Versions.ChangeFormatter
+  alias Valkyrie.Versions.CombinedVersion
 
-  @limit 20
-  @member_versions_table "members_versions"
-  @access_versions_table "member_key_targets_versions"
-  # Search scans a bounded recent window per source. Fully unbounded audit search
-  # would need a denormalized audit table: the affected member-id and door-id live
-  # inside each version's JSON `changes`, not as queryable columns, so they can't be
-  # filtered in SQL, and matching many ids reintroduces SQLite's OR-depth limit.
-  @search_window 2000
+  @page_limit 100
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(:search_query, "")
-     |> assign(:search_window, @search_window)
+     |> assign(:filters, %{
+       "show_sync_actions" => false
+     })
      |> update_audit_list()}
   end
 
@@ -32,15 +28,34 @@ defmodule ValkyrieWeb.AuditLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
-      Audit Log
+      <.header>
+        <:actions>
+          <div class="flex flex-row gap-20 items-center">
+            <div>
+              <.form_wrapper
+                for={to_form(@filters)}
+                phx-change="filter_changed"
+                phx-debounce="600"
+              >
+                <div class="flex flex-row gap-5">
+                  <.toggle_field
+                    field={@filters[:show_sync_actions]}
+                    checked={toggle_check(:show_sync_actions, to_form(@filters))}
+                    label="Show Sync Actions"
+                    name="show_sync_actions"
+                    class="flex flex-col gap-2 items-center"
+                  />
+                </div>
+              </.form_wrapper>
+            </div>
+          </div>
+        </:actions>
+      </.header>
       <.paginated_content
         search_query={@search_query}
         search_placeholder="Search Entity..."
         page={@page}
       >
-        <p :if={@search_truncated?} class="text-sm text-gray-500 italic mb-2">
-          Showing matches within the most recent {@search_window} events.
-        </p>
         <.table id="audit" rows={@streams.audit} thead_class="text-lg font-extrabold" rounded="large">
           <:col :let={{_id, entry}} label="Timestamp">
             <%= if entry.inserted_at do %>
@@ -51,7 +66,7 @@ defmodule ValkyrieWeb.AuditLive.Index do
           </:col>
           <:col :let={{_id, entry}} label="Actor">
             <%= if entry.actor do %>
-              {entry.actor}
+              {entry.actor.username}
             <% else %>
               <span class="font-light italic text-gray-400">unknown</span>
             <% end %>
@@ -59,7 +74,13 @@ defmodule ValkyrieWeb.AuditLive.Index do
           <:col :let={{_id, entry}} label="Action">
             {entry.action}
           </:col>
-          <:col :let={{_id, entry}} label="Entity">{entry.entity}</:col>
+          <:col :let={{_id, entry}} label="Entity">
+            <%= if entry.entity do %>
+              {entry.entity}
+            <% else %>
+              <span class="font-light italic text-gray-400">unknown</span>
+            <% end %>
+          </:col>
           <:col :let={{_id, entry}} label="Changes">
             <div :for={line <- entry.lines} class="flex flex-col">
               <span class="font-light text-gray-500 break-all">{line}</span>
@@ -71,229 +92,84 @@ defmodule ValkyrieWeb.AuditLive.Index do
     """
   end
 
-  @doc false
-  # Renders one papertrail change entry as a human-readable line, or "" when the
-  # attribute is unchanged (so the caller can skip it).
-  #
-  # Scalars arrive as %{"from" => a, "to" => b}. Array attributes (full_diff)
-  # arrive as %{"to" => [%{"added" => v}, %{"removed" => v}, %{"unchanged" => v}]},
-  # which we render as an explicit "added ...; removed ..." summary.
-  def format_change(_key, %{"unchanged" => _}), do: ""
-
-  def format_change(key, %{"to" => elements}) when is_list(elements) do
-    added = for %{"added" => v} <- elements, do: to_string(v)
-    removed = for %{"removed" => v} <- elements, do: to_string(v)
-
-    parts =
-      [] ++
-        if(added == [], do: [], else: ["added #{Enum.join(added, ", ")}"]) ++
-        if(removed == [], do: [], else: ["removed #{Enum.join(removed, ", ")}"])
-
-    case parts do
-      [] -> ""
-      _ -> "changed #{key}: #{Enum.join(parts, "; ")}"
-    end
-  end
-
-  def format_change(key, %{"from" => from, "to" => to}) do
-    "changed #{key} from #{format_audit_value(from)} to #{format_audit_value(to)}"
-  end
-
-  # A scalar set on create arrives as %{"to" => value} with no "from".
-  def format_change(key, %{"to" => to}) do
-    "changed #{key} from #{format_audit_value(nil)} to #{format_audit_value(to)}"
-  end
-
-  def format_change(_key, _value), do: ""
-
-  @doc false
-  # Renders a scalar papertrail value as a display string.
-  def format_audit_value(value) when value in [nil, ""], do: "<empty>"
-  def format_audit_value(value) when is_binary(value), do: value
-  def format_audit_value(value), do: inspect(value)
-
   def update_audit_list(socket) do
     offset =
       socket.assigns
       |> Map.get(:page, %{})
       |> Map.get(:offset, 0)
 
-    query = String.trim(socket.assigns.search_query)
-    searching? = query != ""
-    user_names = user_name_map()
+    query =
+      CombinedVersion
+      |> Ash.Query.sort(inserted_at: :desc)
+      |> maybe_filter_sync_actions(socket)
+      |> maybe_add_search_filter(socket.assigns.search_query)
 
-    {results, total, truncated?} =
-      if searching? do
-        # Entity/door names live inside each version's JSON `changes`, so they can't
-        # be filtered in SQL — scan a bounded recent window, resolve, filter in memory.
-        window = fetch_raw(@search_window, 0, user_names)
-        filtered = window |> resolve_names() |> Enum.filter(&matches?(&1, query))
+    case Valkyrie.Versions.list_versions(
+           page: [limit: @page_limit, offset: offset, count: true],
+           actor: socket.assigns.current_user,
+           query: query
+         ) do
+      {:ok, page} ->
+        page = %{page | results: resolve_names(page.results)}
 
-        {filtered |> Enum.drop(offset) |> Enum.take(@limit), length(filtered),
-         length(window) >= @search_window}
-      else
-        # The database merges + orders + paginates both version tables (see fetch_raw),
-        # so deep pages and the total count are correct.
-        {fetch_raw(@limit, offset, user_names) |> resolve_names(), total_count(), false}
-      end
+        socket
+        |> AshPhoenix.LiveView.assign_page_and_stream_result(page, results_key: :audit)
 
-    page = %Ash.Page.Offset{
-      results: results,
-      limit: @limit,
-      offset: offset,
-      count: total,
-      more?: offset + @limit < total
-    }
-
-    socket
-    |> assign(:search_truncated?, truncated?)
-    |> AshPhoenix.LiveView.assign_page_and_stream_result(page, results_key: :audit)
-  end
-
-  # Merge both version tables in the database. They share a schema, so a UNION lets
-  # SQLite do the ordering/limit/offset — doing it in-app is capped by the version
-  # read's max page size and cannot reach deep pages.
-  defp fetch_raw(limit, offset, user_names) do
-    sql = """
-    SELECT id, version_inserted_at, user_id, version_action_name, version_action_type, version_source_id, changes, 'member' AS kind
-    FROM #{@member_versions_table}
-    UNION ALL
-    SELECT id, version_inserted_at, user_id, version_action_name, version_action_type, version_source_id, changes, 'access' AS kind
-    FROM #{@access_versions_table}
-    ORDER BY version_inserted_at DESC
-    LIMIT ? OFFSET ?
-    """
-
-    %{rows: rows} = Repo.query!(sql, [limit, offset])
-    Enum.map(rows, &row_to_raw(&1, user_names))
-  end
-
-  defp total_count do
-    %{rows: [[count]]} =
-      Repo.query!(
-        "SELECT (SELECT COUNT(*) FROM #{@member_versions_table}) + " <>
-          "(SELECT COUNT(*) FROM #{@access_versions_table})"
-      )
-
-    count
-  end
-
-  defp row_to_raw(
-         [id, inserted_at, user_id, action_name, action_type, source_id, changes_json, kind],
-         user_names
-       ) do
-    changes = decode_changes(changes_json)
-
-    base = %{
-      id: id,
-      inserted_at: parse_datetime(inserted_at),
-      actor: Map.get(user_names, user_id)
-    }
-
-    case kind do
-      "member" ->
-        lines =
-          for {key, value} <- changes, line = format_change(key, value), line != "", do: line
-
-        Map.merge(base, %{
-          action: to_string(action_name),
-          kind: :member,
-          member_id: source_id,
-          target_id: nil,
-          lines: lines
-        })
-
-      "access" ->
-        action =
-          case action_type do
-            "create" -> "granted key access"
-            "destroy" -> "revoked key access"
-            other -> to_string(other)
-          end
-
-        Map.merge(base, %{
-          action: action,
-          kind: :access,
-          member_id: change_value(changes["member_id"]),
-          target_id: change_value(changes["key_target_id"]),
-          lines: nil
-        })
+      {:error, reason} ->
+        socket
+        |> put_flash(:error, "Failed to list audit events: #{inspect(reason)}")
     end
   end
 
-  defp decode_changes(json) when is_binary(json), do: Jason.decode!(json)
-  defp decode_changes(map) when is_map(map), do: map
-  defp decode_changes(_), do: %{}
+  # Batch-resolves each version's affected member (the Entity column) and, for access
+  # grants/revokes, the door name (the Changes column) for the current page, mapping
+  # records into the render-friendly shape. The member/door ids are surfaced by the
+  # view as the `member_id` / `key_target_id` columns.
+  defp resolve_names(records) do
+    member_ids =
+      records
+      |> Enum.map(& &1.member_id)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
 
-  defp parse_datetime(value) when is_binary(value) do
-    case DateTime.from_iso8601(value) do
-      {:ok, datetime, _} ->
-        datetime
-
-      _ ->
-        case NaiveDateTime.from_iso8601(value) do
-          {:ok, naive} -> DateTime.from_naive!(naive, "Etc/UTC")
-          _ -> nil
-        end
-    end
-  end
-
-  defp parse_datetime(value), do: value
-
-  defp user_name_map do
-    Valkyrie.Accounts.User
-    |> Ash.read!(authorize?: false)
-    |> Map.new(&{&1.id, &1.username})
-  end
-
-  # Resolve member usernames (and, for access rows, door names) for only the given
-  # entries — the current page when not searching, or the search window otherwise.
-  defp resolve_names(entries) do
-    member_ids = entries |> Enum.map(& &1.member_id) |> Enum.reject(&is_nil/1) |> Enum.uniq()
     member_names = member_name_map(member_ids)
     target_names = target_name_lookup()
 
-    Enum.map(entries, fn entry ->
+    Enum.map(records, fn record ->
       %{
-        id: entry.id,
-        inserted_at: entry.inserted_at,
-        actor: entry.actor,
-        action: entry.action,
-        entity: Map.get(member_names, entry.member_id, "unknown"),
-        lines: entry_lines(entry, target_names)
+        id: record.id,
+        inserted_at: record.inserted_at,
+        actor: record.actor,
+        action: display_action(record),
+        entity: Map.get(member_names, record.member_id),
+        lines: lines_for(record, target_names)
       }
     end)
   end
 
-  defp entry_lines(%{kind: :member, lines: lines}, _targets), do: lines
+  # Access grants/revokes are recorded as raw create/destroy versions on the join
+  # resource; surface them as the domain event instead.
+  defp display_action(%{kind: "access", version_action_type: "create"}), do: "grant_access"
+  defp display_action(%{kind: "access", version_action_type: "destroy"}), do: "revoke_access"
+  defp display_action(%{action: action}), do: action
 
-  defp entry_lines(%{kind: :access, target_id: target_id}, targets),
-    do: [Map.get(targets, target_id, target_id)]
+  defp lines_for(%{kind: "access", version_action_type: type, key_target_id: id}, targets) do
+    door = Map.get(targets, id, id)
 
-  defp matches?(entry, query) do
-    needle = String.downcase(query)
-
-    haystack =
-      [entry.entity, entry.actor, entry.action | entry.lines]
-      |> Enum.reject(&is_nil/1)
-      |> Enum.join(" ")
-      |> String.downcase()
-
-    String.contains?(haystack, needle)
+    case type do
+      "create" -> ["Granted access to #{door}"]
+      "destroy" -> ["Revoked access to #{door}"]
+      _ -> [door]
+    end
   end
 
-  # Papertrail full_diff wraps each value; a grant stores it under "to", a revoke
-  # under "unchanged", and scalar edits under "from"/"to".
-  defp change_value(%{"to" => value}), do: value
-  defp change_value(%{"unchanged" => value}), do: value
-  defp change_value(%{"from" => value}), do: value
-  defp change_value(_), do: nil
+  defp lines_for(%{changes: changes}, _targets), do: ChangeFormatter.summarize(changes)
 
   # Map of member id -> username for just the given ids (archived members included,
   # so deleted entities still resolve). Scoped to the ids on the current page rather
-  # than reading the whole members table on every render. For a large id set (the
-  # search window) a scoped `id in [...]` would risk SQLite's variable/expression
-  # limits, so fall back to a single unfiltered read.
+  # than reading the whole members table on every render. For a large id set a scoped
+  # `id in [...]` would risk SQLite's variable/expression limits, so fall back to a
+  # single unfiltered read.
   defp member_name_map([]), do: %{}
 
   defp member_name_map(ids) when length(ids) > 200 do
@@ -317,7 +193,7 @@ defmodule ValkyrieWeb.AuditLive.Index do
       case Members.list_key_target_versions(query: [sort: [version_inserted_at: :asc]]) do
         {:ok, versions} ->
           Enum.reduce(versions, %{}, fn version, acc ->
-            case change_value(version.changes["name"]) do
+            case ChangeFormatter.change_value(version.changes["name"]) do
               nil -> acc
               name -> Map.put(acc, version.version_source_id, name <> " (deleted)")
             end
@@ -328,5 +204,59 @@ defmodule ValkyrieWeb.AuditLive.Index do
       end
 
     Map.merge(historical, Map.new(KeyTargets.all(), &{&1.id, &1.name}))
+  end
+
+  defp filters_from_form(form) do
+    form
+    |> Map.reject(fn {key, _value} -> String.starts_with?(key, "_") end)
+    |> Enum.map(fn {key, value} ->
+      {key, Phoenix.HTML.Form.normalize_value("checkbox", value)}
+    end)
+    |> Map.new()
+  end
+
+  @impl true
+  def handle_event("filter_changed", form, socket) do
+    filters = filters_from_form(form)
+
+    {:noreply,
+     socket
+     |> assign(:filters, filters)
+     |> reset_offset()
+     |> update_audit_list()}
+  end
+
+  # Changing filters can shrink the result set below the current offset, leaving the
+  # user on a now-out-of-range page; jump back to the first page.
+  defp reset_offset(%{assigns: %{page: %{} = page}} = socket),
+    do: assign(socket, :page, %{page | offset: 0})
+
+  defp reset_offset(socket), do: socket
+
+  defp maybe_filter_sync_actions(query, socket) do
+    if socket.assigns.filters["show_sync_actions"] == true do
+      query
+    else
+      query |> Ash.Query.filter(action != "sync_update")
+    end
+  end
+
+  # Matches rows by the affected member (who it was done to) — the `member_id` column
+  # is present for both kinds, so the id set (pre-resolved from the members table,
+  # archived members included) filters via a single `IN`.
+  defp maybe_add_search_filter(query, search_query) do
+    case String.trim(search_query) do
+      "" ->
+        query
+
+      trimmed ->
+        member_ids =
+          Member
+          |> Ash.Query.filter(contains(username, ^trimmed))
+          |> Ash.read!(action: :read_for_audit_log)
+          |> Enum.map(& &1.id)
+
+        Ash.Query.filter(query, member_id in ^member_ids)
+    end
   end
 end

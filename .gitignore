@@ -43,6 +43,8 @@ npm-debug.log
 .envrc
 
 .env
+.env.yml
+.sops.yaml
 *_names.txt
 *.dump
 *.pem

@@ -11,6 +11,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
   alias Valkyrie.Members.SyncState
   alias DateTime
 
+  @page_limit 100
   @last_access_authorized_keys_topic "last_access:authorized_keys"
 
   @impl true
@@ -94,7 +95,11 @@ defmodule ValkyrieWeb.MemberLive.Index do
           new_filters
       end
 
-    {:noreply, socket |> assign(:filters, filters) |> update_member_list()}
+    {:noreply,
+     socket
+     |> assign(:filters, filters)
+     |> reset_offset()
+     |> update_member_list()}
   end
 
   @impl true
@@ -192,7 +197,7 @@ defmodule ValkyrieWeb.MemberLive.Index do
       |> maybe_filter_only_keyholders(socket)
 
     case Members.list_members(
-           page: [limit: 50, offset: offset, count: true],
+           page: [limit: @page_limit, offset: offset, count: true],
            actor: socket.assigns.current_user,
            query: query
          ) do
@@ -207,6 +212,13 @@ defmodule ValkyrieWeb.MemberLive.Index do
         |> put_flash(:error, "Failed to list members: #{reason}")
     end
   end
+
+  # Changing filters can shrink the result set below the current offset, leaving the
+  # user on a now-out-of-range page; jump back to the first page.
+  defp reset_offset(%{assigns: %{page: %{} = page}} = socket),
+    do: assign(socket, :page, %{page | offset: 0})
+
+  defp reset_offset(socket), do: socket
 
   defp maybe_filter_only_manual_entries(query, socket) do
     if socket.assigns.filters["only_manual_entries"] == true do

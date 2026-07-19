@@ -52,7 +52,7 @@ config :spark,
 config :valkyrie,
   ecto_repos: [Valkyrie.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [Valkyrie.Accounts, Valkyrie.Members]
+  ash_domains: [Valkyrie.Accounts, Valkyrie.Members, Valkyrie.Versions]
 
 config :valkyrie, Valkyrie.Members.SyncScheduler,
   interval_ms: :timer.minutes(15),
