@@ -41,7 +41,8 @@ defmodule ValkyrieWeb.AuditLive.IndexTest do
         ]
       }
 
-      assert ChangeFormatter.format_change("key_targets", value) == "changed key_targets: added g16, g20"
+      assert ChangeFormatter.format_change("key_targets", value) ==
+               "changed key_targets: added g16, g20"
     end
 
     test "skips unchanged attributes" do

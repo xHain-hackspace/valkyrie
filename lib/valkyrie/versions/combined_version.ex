@@ -38,5 +38,4 @@ defmodule Valkyrie.Versions.CombinedVersion do
       attribute_writable? false
     end
   end
-
 end
