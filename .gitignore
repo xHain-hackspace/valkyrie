@@ -51,3 +51,5 @@ npm-debug.log
 **/default_data.ex
 
 .claude/
+
+data/
