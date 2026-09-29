@@ -87,19 +87,20 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
-config :valkyrie, Valkyrie.Mailer,
-  adapter: Swoosh.Adapters.Logger,
-  level: :debug,
-  log_full_email: true
+# How emails are delivered in dev:
+#   :local  - kept in memory, view them at /dev/mailbox
+#   :logger - printed to the console
+#   :smtp   - sent for real via the SMTP_* env vars (configured in runtime.exs)
+dev_mailer = :logger
 
-# config :valkyrie, Valkyrie.Mailer,
-#   adapter: Swoosh.Adapters.Mua,
-#   relay: System.fetch_env!("SMTP_HOST"),
-#   auth: [
-#     username: System.fetch_env!("SMTP_USER"),
-#     password: System.fetch_env!("SMTP_PASSWORD")
-#   ],
-#   port: String.to_integer(System.fetch_env!("SMTP_PORT"))
+config :valkyrie, :dev_mailer, dev_mailer
+
+if dev_mailer == :logger do
+  config :valkyrie, Valkyrie.Mailer,
+    adapter: Swoosh.Adapters.Logger,
+    level: :debug,
+    log_full_email: true
+end
 
 config :valkyrie, :disable_auth, false
 

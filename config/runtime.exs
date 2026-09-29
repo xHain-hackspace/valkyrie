@@ -114,25 +114,11 @@ if config_env() == :prod do
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
+end
 
-  # ## Configuring the mailer
-  #
-  # In production you need to configure the mailer to use a different adapter.
-  # Here is an example configuration for Mailgun:
-  #
-  #     config :valkyrie, Valkyrie.Mailer,
-  #       adapter: Swoosh.Adapters.Mailgun,
-  #       api_key: System.get_env("MAILGUN_API_KEY"),
-  #       domain: System.get_env("MAILGUN_DOMAIN")
-  #
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
-  #
-  # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
-  #
+# Send mail over SMTP. Always used in prod; in dev only when `dev_mailer` in
+# config/dev.exs is set to :smtp.
+if config_env() == :prod or Application.get_env(:valkyrie, :dev_mailer) == :smtp do
   config :valkyrie, Valkyrie.Mailer,
     adapter: Swoosh.Adapters.Mua,
     relay: System.fetch_env!("SMTP_HOST"),

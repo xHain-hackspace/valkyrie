@@ -81,7 +81,9 @@ In development:
 
 - The scheduled Authentik sync is **disabled**. Use the sync button in the UI
   instead.
-- Emails are written to the log rather than sent.
+- Emails are kept in memory and shown in the mailbox preview rather than sent.
+  Set `dev_mailer` in `config/dev.exs` to `:logger` to print them to the
+  console, or to `:smtp` to send them for real (needs the `SMTP_*` variables).
 - AshAdmin is at `/admin`, the LiveDashboard at `/dev/dashboard`, and the mailbox
   preview at `/dev/mailbox`.
 
