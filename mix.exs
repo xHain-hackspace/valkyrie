@@ -133,7 +133,7 @@ defmodule Valkyrie.MixProject do
       {:ex_crypto, "~> 0.10"},
       {:mua, "~> 0.2.0"},
       {:mail, "~> 0.5.2"},
-      {:hackney, "~> 1.9"}
+      {:hackney, "~> 4.8"}
     ]
   end
 
