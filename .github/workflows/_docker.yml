@@ -32,6 +32,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          # Full history and tags, so `git describe` can derive the version
+          fetch-depth: 0
+
+      - name: Determine app version
+        id: version
+        run: echo "version=$(git describe --tags --match 'v[0-9]*' --always)" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -67,6 +74,7 @@ jobs:
           build-args: |
             ELIXIR_VERSION=${{ inputs.elixir-version }}
             OTP_VERSION=${{ inputs.otp-version }}
+            APP_VERSION=${{ steps.version.outputs.version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

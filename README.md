@@ -127,6 +127,26 @@ Each push to `main` and each `v*.*.*` tag publishes a Docker image to
 pending migrations on startup.
 
 See `docker-compose.yml` for a minimal example of running the image.
+`make compose_up` builds and starts it with the version set from git. It takes
+the secrets from your shell, which direnv loads from `.env.yml`. Without direnv,
+run `sops exec-env .env.yml 'make compose_up'`. A `.env` file is optional
+and only needed for overrides.
+
+### Versioning
+
+The version comes from git tags. `mix.exs` runs
+`git describe --tags --match 'v[0-9]*'` and turns the result into SemVer:
+`v0.6.0` becomes `0.6.0`, and commits after a tag go into the build metadata
+(`0.6.0+4.g3156ab9`, plus `.dirty` for uncommitted changes). The version is
+shown in the footer of every page and links to the GitHub release or commit.
+
+The Docker build has no git history, so CI passes the `git describe` output as
+the `APP_VERSION` build arg. `APP_VERSION` also overrides the version for local
+builds. To cut a release, push a `v*.*.*` tag.
+
+In a container, `bin/valkyrie version` prints the normalized version. The raw
+`git describe` output is available as `$APP_VERSION` and as the
+`org.opencontainers.image.version` image label.
 
 ### Adding a door in production
 

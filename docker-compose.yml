@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Set by `make compose_up` from `git describe`
+        - APP_VERSION=${APP_VERSION:-}
     ports:
       - 4000:4000
     environment:
@@ -13,8 +16,27 @@ services:
       - SECRET_KEY_BASE=EwbrYaupLIskf7Ki6bTlKUSmvhzFu4/hYBmzSC/VGNx/sAJFz9ctychRV15d9iO3
       - TOKEN_SIGNING_SECRET=nooroo2iukohx1xeeDoo2johy8puu2EiWah5ol7bohkuYoo3jebooshohgahjame
       - PHX_HOST=localhost
+      # Secrets are passed through from the host shell, where direnv loads
+      # them from the sops-encrypted .env.yml. Without direnv, run:
+      #   sops exec-env .env.yml 'make compose_up'
+      - XHAIN_ACCOUNT_CLIENT_ID
+      - XHAIN_ACCOUNT_CLIENT_SECRET
+      - XHAIN_ACCOUNT_BASE_URL
+      - XHAIN_ACCOUNT_REDIRECT_URI
+      - AUTHENTIK_TOKEN
+      - AUTHENTIK_URL
+      - AUTHENTIK_MEMBER_GROUP_UUID
+      - AUTHENTIK_ADMIN_GROUP
+      - XDOOR_SIGNING_KEY
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USER
+      - SMTP_PASSWORD
+      - SYNC_INTERVAL_MINUTES
     volumes:
         - ./scripts:/app/scripts
+        - ./data/valkyrie_obfuscated.db:/app/valkyrie.db
+    # Optional overrides, e.g. for running without the encrypted secrets
     env_file:
-      - .env
-    network_mode: host
+      - path: .env
+        required: false

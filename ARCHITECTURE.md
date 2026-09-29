@@ -204,6 +204,9 @@ Telemetry ─ Repo ─ Ecto.Migrator ─ DNSCluster ─ PubSub
 
 - `Ecto.Migrator` runs migrations on boot, but only inside a release (when
   `RELEASE_NAME` is set). Locally, run `mix ash.migrate` yourself.
+- `Valkyrie.version/0` returns the application version. `mix.exs` derives it
+  at compile time from `git describe` (or from the `APP_VERSION` env var in
+  Docker builds). The `Layouts.app` footer shows it.
 - All data lives in one SQLite file. Back up that file, together with its `-wal`
   and `-shm` files, and the database is fully backed up.
 

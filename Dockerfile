@@ -52,6 +52,12 @@ COPY priv priv
 
 COPY lib lib
 
+# The app version (see `version/0` in mix.exs). The build context has no git
+# history, so CI passes the output of `git describe` in here. Declared this
+# late so a new version doesn't invalidate the dependency layers.
+ARG APP_VERSION=""
+ENV APP_VERSION=${APP_VERSION}
+
 # Compile the release
 RUN mix compile
 
@@ -87,6 +93,12 @@ RUN chown nobody /app
 
 # set runner ENV
 ENV MIX_ENV="prod"
+
+# Expose the raw `git describe` version to the running container and to
+# `docker inspect`. The normalized version is available via `bin/valkyrie version`.
+ARG APP_VERSION=""
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.version=${APP_VERSION}
 
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/valkyrie ./

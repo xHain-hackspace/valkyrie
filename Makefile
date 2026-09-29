@@ -1,5 +1,8 @@
 SHELL := /usr/bin/env bash
 
+APP_VERSION ?= $(shell git describe --tags --match 'v[0-9]*' --always --dirty 2>/dev/null)
+export APP_VERSION
+
 download_prod_data:
 	./scripts/download_prod_db.sh ./data/valkyrie_prod.db
 	./scripts/obfuscate_prod_db.sh ./data/valkyrie_prod.db ./data/valkyrie_obfuscated.db
@@ -29,3 +32,8 @@ run_prod:
 	TOKEN_SIGNING_SECRET=cVn/Be8CLY3BDXpic7VyGTakdAKj36peJAKyp+jvEJV01hWYTI4BIR5dcl3wFs6X \
 	PHX_HOST=localhost \
 	iex -S mix phx.server
+
+# Build and run the Docker image with the version from git.
+# Secrets come from the shell (direnv), see docker-compose.yml.
+compose_up:
+	docker compose up --build

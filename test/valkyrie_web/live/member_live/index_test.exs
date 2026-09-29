@@ -19,6 +19,14 @@ defmodule ValkyrieWeb.MemberLive.IndexTest do
     |> Enum.map(& &1.slug)
   end
 
+  describe "layout" do
+    test "shows the app version in the footer", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/members")
+
+      assert has_element?(view, "#app-version", "v#{Valkyrie.version()}")
+    end
+  end
+
   describe "member list" do
     test "renders members on mount", %{conn: conn} do
       member_fixture(%{

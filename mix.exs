@@ -4,7 +4,7 @@ defmodule Valkyrie.MixProject do
   def project do
     [
       app: :valkyrie,
-      version: "0.1.0",
+      version: version(),
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -30,6 +30,54 @@ defmodule Valkyrie.MixProject do
     [
       preferred_envs: [precommit: :test]
     ]
+  end
+
+  # The version comes from the latest `v*.*.*` git tag, or from the
+  # `APP_VERSION` environment variable (set by the Docker build, which has no
+  # git history). Commits since the tag go into the SemVer build metadata:
+  #
+  #     v0.6.0                  -> 0.6.0
+  #     v0.6.0-4-g3156ab9       -> 0.6.0+4.g3156ab9
+  #     v0.6.0-4-g3156ab9-dirty -> 0.6.0+4.g3156ab9.dirty
+  #     3156ab9                 -> 0.0.0+g3156ab9
+  defp version do
+    case System.get_env("APP_VERSION", "") do
+      "" -> git_describe()
+      version -> version
+    end
+    |> normalize_version()
+    |> tap(&Version.parse!/1)
+  end
+
+  defp git_describe do
+    case System.cmd("git", ~w(describe --tags --match v[0-9]* --always --dirty),
+           stderr_to_stdout: true
+         ) do
+      {output, 0} -> String.trim(output)
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp normalize_version(nil), do: "0.0.0-dev"
+
+  defp normalize_version(raw) do
+    case Regex.run(~r/^v?(\d+\.\d+\.\d+)(?:-(\d+)-(g[0-9a-f]+))?(-dirty)?$/, raw) do
+      [_, version] -> version
+      [_, version, "", "", "-dirty"] -> version <> "+dirty"
+      [_, version, count, sha] -> "#{version}+#{count}.#{sha}"
+      [_, version, count, sha, "-dirty"] -> "#{version}+#{count}.#{sha}.dirty"
+      nil -> normalize_untagged(raw)
+    end
+  end
+
+  defp normalize_untagged(raw) do
+    case Regex.run(~r/^([0-9a-f]+)(-dirty)?$/, raw) do
+      [_, sha] -> "0.0.0+g#{sha}"
+      [_, sha, "-dirty"] -> "0.0.0+g#{sha}.dirty"
+      nil -> raw
+    end
   end
 
   # Specifies which paths to compile per environment.

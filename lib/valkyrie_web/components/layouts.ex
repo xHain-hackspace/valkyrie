@@ -67,7 +67,54 @@ defmodule ValkyrieWeb.Layouts do
       </div>
     </main>
 
+    <.version_footer version={Valkyrie.version()} />
+
     <ValkyrieWeb.Components.Alert.flash_group position="top_right" flash={@flash} />
     """
+  end
+
+  @repo_url "https://github.com/xHain-hackspace/valkyrie"
+
+  attr :version, :string, required: true
+
+  defp version_footer(assigns) do
+    assigns = assign(assigns, :href, version_url(assigns.version))
+
+    ~H"""
+    <footer class="px-4 pb-8 text-center text-xs text-gray-400">
+      <span>xDoor</span>
+      <span class="mx-1">·</span>
+      <%= if @href do %>
+        <a
+          id="app-version"
+          href={@href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-mono transition-colors hover:text-gray-600 hover:underline"
+        >
+          v{@version}
+        </a>
+      <% else %>
+        <span id="app-version" class="font-mono">v{@version}</span>
+      <% end %>
+    </footer>
+    """
+  end
+
+  # Tagged builds link to their release, untagged builds to their commit.
+  defp version_url(version) do
+    case Version.parse(version) do
+      {:ok, %Version{pre: [], build: nil}} ->
+        "#{@repo_url}/releases/tag/v#{version}"
+
+      {:ok, %Version{build: build}} when is_binary(build) ->
+        case Regex.run(~r/(?:^|\.)g([0-9a-f]+)/, build) do
+          [_, sha] -> "#{@repo_url}/commit/#{sha}"
+          nil -> nil
+        end
+
+      _ ->
+        nil
+    end
   end
 end
