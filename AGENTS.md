@@ -3,6 +3,8 @@ This is a web application written using the Phoenix web framework.
 ## Project guidelines
 
 - Use `mix precommit` alias when you are done with all changes and fix any pending issues
+- Read `ARCHITECTURE.md` for an overview of the domains, resources and key flows before making larger changes
+- Keep `README.md` and `ARCHITECTURE.md` up to date: when a change adds, removes or alters features, routes, environment variables, resources, flows, supervision tree children, metrics or dev/deploy tooling, update the affected documentation in the same change
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
 
 ### Phoenix v1.8 guidelines
