@@ -36,10 +36,14 @@ defmodule Valkyrie.Accounts.User do
         end
 
         registration_enabled? true
+        # Authentik is our own IdP and asserts email ownership. Users are matched
+        # by username, so this never auto-links an account by email.
+        trust_email_verified? true
         id_token_signed_response_alg "HS256"
         authorization_params scope: "openid profile email groups"
 
         client_secret Valkyrie.Secrets
+        identity_resource Valkyrie.Accounts.UserIdentity
       end
     end
   end
@@ -57,7 +61,7 @@ defmodule Valkyrie.Accounts.User do
     create :register_with_xhain_account do
       description "Register a user using the xHain Account System"
       argument :user_info, :map, allow_nil?: false
-      argument :oauth_tokens, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
       change AshAuthentication.GenerateTokenChange
 
       change fn changeset, _ ->
@@ -69,13 +73,16 @@ defmodule Valkyrie.Accounts.User do
         })
       end
 
+      change Valkyrie.Accounts.User.LinkLegacyIdentity
+      change AshAuthentication.Strategy.OAuth2.IdentityChange
+
       upsert? true
       upsert_identity :username
     end
 
     read :sign_in_with_xhain_account do
       argument :user_info, :map, allow_nil?: false
-      argument :oauth_tokens, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
       prepare AshAuthentication.Strategy.OAuth2.SignInPreparation
 
       filter expr(username == get_path(^arg(:user_info), [:preferred_username]))

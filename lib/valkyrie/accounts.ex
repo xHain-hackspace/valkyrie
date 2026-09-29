@@ -8,5 +8,6 @@ defmodule Valkyrie.Accounts do
   resources do
     resource Valkyrie.Accounts.Token
     resource Valkyrie.Accounts.User
+    resource Valkyrie.Accounts.UserIdentity
   end
 end

@@ -56,7 +56,7 @@ only fetch the signed key lists from Valkyrie.
 lib/
 ├── valkyrie/                  # business logic (no web code)
 │   ├── application.ex         # supervision tree
-│   ├── accounts/              # Accounts domain: User, Token (login)
+│   ├── accounts/              # Accounts domain: User, UserIdentity, Token (login)
 │   ├── members.ex             # Members domain + Authentik sync logic
 │   ├── members/               # Member, KeyTarget, KeyTargetAccess, sync, stats, mails
 │   ├── versions/              # read-only view over all audit-log tables
@@ -81,6 +81,11 @@ lib/
   created or updated (upserted) on every login. `is_admin` is set from the OIDC
   `groups` claim: it is `true` only when the claim contains
   `AUTHENTIK_ADMIN_GROUP`. If that setting is missing, nobody is an admin.
+- **`UserIdentity`** stores the provider's `sub` for each user, together with
+  the OIDC access and refresh tokens. Sign-ins are matched to users by `sub`, so
+  a different Authentik account can't take over an existing username. A user
+  created before identities existed has none yet: on their first sign-in,
+  `User.LinkLegacyIdentity` links the `sub` to the user with the same username.
 - **`Token`** holds the AshAuthentication session tokens.
 - The seeds create a system user named **`authentik`**. Changes made by the
   member sync are recorded under this user, so the audit log shows them as
