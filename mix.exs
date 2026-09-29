@@ -95,7 +95,7 @@ defmodule Valkyrie.MixProject do
       {:ash_paper_trail, "~> 0.5"},
       {:mishka_chelekom, "~> 0.0", only: [:dev]},
       {:live_debugger, "~> 1.0", only: [:dev]},
-      {:ash_admin, "~> 0.13"},
+      {:ash_admin, "~> 1.3"},
       {:ash_authentication_phoenix, "~> 2.0"},
       {:ash_authentication, "~> 4.0"},
       {:ash_sqlite, "~> 0.2"},
