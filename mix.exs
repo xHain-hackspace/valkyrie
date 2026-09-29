@@ -127,7 +127,7 @@ defmodule Valkyrie.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.4"},
-      {:dns_cluster, "~> 0.2.0"},
+      {:dns_cluster, "~> 0.3.0"},
       {:bandit, "~> 1.5"},
       {:mint, "~> 1.0"},
       {:ex_crypto, "~> 0.10"},
