@@ -15,10 +15,6 @@ defmodule Valkyrie.Accounts.UserIdentity do
     user_resource Valkyrie.Accounts.User
   end
 
-  actions do
-    defaults [:read]
-  end
-
   policies do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
